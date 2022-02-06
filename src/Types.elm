@@ -3,16 +3,35 @@ module Types exposing (..)
 import Browser exposing (UrlRequest)
 import Browser.Navigation exposing (Key)
 import Url exposing (Url)
+import Dict exposing (Dict)
 
+type alias PlayerId = Int
+type alias GameId = Int
 
-type alias FrontendModel =
-    { key : Key
-    , message : String
+type alias Player =
+    { id : PlayerId
+    , displayName : String
     }
 
+type alias GameData =
+    { id : GameId
+    , players : List Player
+    }
+
+type FrontendState
+    = BrowsingGames FrontendGameList
+    | ConnectingToGame GameId
+    | InGame GameId
+
+type alias FrontendModel =
+    { key : Key -- used by Browser.Navigation for things like pushUrl
+    , state : FrontendState
+    }
 
 type alias BackendModel =
-    { message : String
+    { games : Dict Int GameData
+    , gameIdNonce : GameId -- the id that will be assigned to the next created game
+    , playerIdNonce : PlayerId -- the id that will be assigned to the next created player
     }
 
 
