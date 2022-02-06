@@ -28,7 +28,8 @@ app =
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     ( { key = key
-      , message = "Welcome to Ship Game"
+      , state = BrowsingGames ""
+      , hasBeenGreeted = False
       }
     , Cmd.none
     )
@@ -60,7 +61,21 @@ updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
     case msg of
         NoOpToFrontend ->
-            ( model, Cmd.none )
+            ( model
+            , Cmd.none
+            )
+
+        GameJoined game ->
+            ( model
+            , Cmd.none
+            )
+
+        Greeting ->
+            ( { model
+                | hasBeenGreeted = True
+              }
+            , Cmd.none
+            )
 
 
 view : Model -> Browser.Document FrontendMsg
@@ -73,7 +88,12 @@ view model =
                 [ style "font-family" "sans-serif"
                 , style "padding-top" "40px"
                 ]
-                [ text model.message ]
+                [ if model.hasBeenGreeted then
+                    text "Why hello there!"
+
+                  else
+                    text "connecting..."
+                ]
             ]
         ]
     }
