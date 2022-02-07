@@ -36,9 +36,23 @@ update msg model =
         NoOpBackendMsg ->
             ( model, Cmd.none )
 
-        OnConnect sessionId clientId ->
-            ( model
-            , Lamdera.sendToFrontend clientId Greeting
+        HandleConnect _ clientId ->
+            ( { model
+                | players =
+                    model.players
+                        |> Dict.insert clientId (Player model.playerIdNonce Nothing)
+                , playerIdNonce = model.playerIdNonce + 1
+              }
+            , Cmd.none
+            )
+
+        HandleDisconnect _ clientId ->
+            ( { model
+                | players =
+                    model.players
+                        |> Dict.remove clientId
+              }
+            , Cmd.none
             )
 
 
@@ -57,4 +71,7 @@ updateFromFrontend sessionId clientId msg model =
 
 subscriptions : Model -> Sub BackendMsg
 subscriptions model =
-    Lamdera.onConnect OnConnect
+    Sub.batch
+        [ Lamdera.onConnect HandleConnect
+        , Lamdera.onDisconnect HandleDisconnect
+        ]

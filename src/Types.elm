@@ -18,7 +18,7 @@ type alias GameId =
 
 type alias Player =
     { id : PlayerId
-    , displayName : String
+    , displayName : Maybe String
     }
 
 
@@ -30,8 +30,8 @@ type alias GameState =
 
 
 type FrontendState
-    = BrowsingGames String
-    | ConnectingToGame GameId
+    = OutOfGame String
+    | ConnectingToGame
     | InGame GameId
 
 
@@ -44,7 +44,7 @@ type alias FrontendModel =
 
 type alias BackendModel =
     { games : Dict Int GameState
-    , players : Dict Int Player
+    , players : Dict Lamdera.ClientId Player
     , gameIdNonce : GameId -- the id that will be assigned to the next created game
     , playerIdNonce : PlayerId -- the id that will be assigned to the next created player
     }
@@ -54,6 +54,9 @@ type FrontendMsg
     = UrlClicked UrlRequest
     | UrlChanged Url
     | NoOpFrontendMsg
+    | HandleJoinCodeInput String
+    | HandleJoinCodeSubmit
+    | HandleCreateGameButtonClick
 
 
 type ToBackend
@@ -64,10 +67,10 @@ type ToBackend
 
 type BackendMsg
     = NoOpBackendMsg
-    | OnConnect Lamdera.SessionId Lamdera.ClientId
+    | HandleConnect Lamdera.SessionId Lamdera.ClientId
+    | HandleDisconnect Lamdera.SessionId Lamdera.ClientId
 
 
 type ToFrontend
     = NoOpToFrontend
     | GameJoined GameState
-    | Greeting
