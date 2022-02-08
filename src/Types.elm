@@ -25,14 +25,14 @@ type alias Player =
 type alias GameState =
     { id : GameId
     , joinCode : String -- the code that players can use to join the game
-    , players : List Player
+    , players : List Lamdera.ClientId
     }
 
 
 type FrontendState
     = OutOfGame String
     | ConnectingToGame
-    | InGame GameId
+    | InGame GameState
 
 
 type alias FrontendModel =
@@ -43,7 +43,7 @@ type alias FrontendModel =
 
 
 type alias BackendModel =
-    { games : Dict Int GameState
+    { games : Dict GameId GameState
     , players : Dict Lamdera.ClientId Player
     , gameIdNonce : GameId -- the id that will be assigned to the next created game
     , playerIdNonce : PlayerId -- the id that will be assigned to the next created player

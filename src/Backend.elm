@@ -3,6 +3,7 @@ module Backend exposing (..)
 import Dict
 import Html
 import Lamdera exposing (ClientId, SessionId)
+import List.Extra
 import Types exposing (..)
 
 
@@ -58,15 +59,62 @@ update msg model =
 
 updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
 updateFromFrontend sessionId clientId msg model =
+    let
+        noOp =
+            ( model, Cmd.none )
+    in
     case msg of
         NoOpToBackend ->
-            ( model, Cmd.none )
+            noOp
 
         CreateGame ->
-            ( model, Cmd.none )
+            let
+                gameState =
+                    GameState model.gameIdNonce "JKLM" [ clientId ]
+            in
+            ( { model
+                | games =
+                    model.games
+                        |> Dict.insert model.gameIdNonce gameState
+                , gameIdNonce = model.gameIdNonce + 1
+              }
+            , Lamdera.sendToFrontend clientId (GameJoined gameState)
+            )
 
-        JoinGame joinString ->
-            ( model, Cmd.none )
+        JoinGame joinCode ->
+            let
+                maybeGameId =
+                    model.games
+                        |> Dict.keys
+                        |> List.Extra.find
+                            (\idx ->
+                                case Dict.get idx model.games of
+                                    Nothing ->
+                                        False
+
+                                    Just game ->
+                                        game.joinCode == joinCode
+                            )
+            in
+            case maybeGameId of
+                Nothing ->
+                    noOp
+
+                Just gameId ->
+                    let
+                        maybeGame =
+                            Dict.get gameId model.games
+                    in
+                    case maybeGame of
+                        Nothing ->
+                            noOp
+
+                        Just game ->
+                            ( { model
+                                | games = Dict.insert gameId { game | players = clientId :: game.players } model.games
+                              }
+                            , Lamdera.sendToFrontend clientId (GameJoined game)
+                            )
 
 
 subscriptions : Model -> Sub BackendMsg

@@ -107,7 +107,7 @@ updateFromBackend msg model =
             )
 
         GameJoined game ->
-            ( model
+            ( { model | state = InGame game }
             , Cmd.none
             )
 
