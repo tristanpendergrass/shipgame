@@ -2,6 +2,7 @@ module Frontend exposing (..)
 
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Nav
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -152,7 +153,7 @@ view model =
                         div []
                             [ div [] [ text "In game" ]
                             , div [] [ text <| "Join Code: " ++ game.joinCode ]
-                            , div [] [ text <| "Players: " ++ String.fromInt (List.length game.players) ]
+                            , div [] [ text <| "Players: " ++ String.fromInt (Dict.keys game.players |> List.length) ]
                             ]
 
                     ConnectingToGame ->

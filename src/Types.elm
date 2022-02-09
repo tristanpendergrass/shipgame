@@ -8,16 +8,12 @@ import Set exposing (Set)
 import Url exposing (Url)
 
 
-type alias PlayerId =
-    Int
-
-
 type alias GameId =
     Int
 
 
 type alias Player =
-    { id : PlayerId
+    { id : Lamdera.ClientId
     , displayName : Maybe String
     }
 
@@ -25,8 +21,8 @@ type alias Player =
 type alias GameState =
     { id : GameId
     , joinCode : String -- the code that players can use to join the game
-    , players : List Lamdera.ClientId
-    , unnamedPlayers : List Lamdera.ClientId
+    , players : Dict Lamdera.ClientId Player
+    , unnamedPlayers : Dict Lamdera.ClientId Player
     }
 
 
@@ -46,9 +42,7 @@ type alias FrontendModel =
 
 type alias BackendModel =
     { games : Dict GameId GameState
-    , players : Dict Lamdera.ClientId Player
     , gameIdNonce : GameId -- the id that will be assigned to the next created game
-    , playerIdNonce : PlayerId -- the id that will be assigned to the next created player
     }
 
 
@@ -72,7 +66,6 @@ type ToBackend
 
 type BackendMsg
     = NoOpBackendMsg
-    | HandleConnect Lamdera.SessionId Lamdera.ClientId
     | HandleDisconnect Lamdera.SessionId Lamdera.ClientId
 
 
