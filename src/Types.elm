@@ -17,7 +17,7 @@ type alias GameId =
 
 
 type alias Player =
-    { id : Lamdera.ClientId
+    { id : PlayerId
     , displayName : Maybe String
     }
 
@@ -25,8 +25,8 @@ type alias Player =
 type alias GameState =
     { id : GameId
     , joinCode : String -- the code that players can use to join the game
-    , players : Dict Lamdera.ClientId Player
-    , unnamedPlayers : Dict Lamdera.ClientId Player
+    , players : Dict PlayerId Player
+    , unnamedPlayers : Dict PlayerId Player
     }
 
 
