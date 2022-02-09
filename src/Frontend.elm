@@ -29,8 +29,7 @@ app =
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     ( { key = key
-      , state = OutOfGame ""
-      , hasBeenGreeted = False
+      , state = OutOfGame "JKLM"
       }
     , Cmd.none
     )
@@ -97,6 +96,22 @@ update msg model =
                 _ ->
                     noOp
 
+        HandleNameInput newName ->
+            case model.state of
+                NamingPlayer _ gameState ->
+                    ( { model | state = NamingPlayer newName gameState }, Cmd.none )
+
+                _ ->
+                    noOp
+
+        HandleNameSubmit ->
+            case model.state of
+                NamingPlayer name gameState ->
+                    ( { model | state = EnteringLobby gameState }, Lamdera.sendToBackend (NamePlayer gameState.id name) )
+
+                _ ->
+                    noOp
+
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
@@ -106,8 +121,8 @@ updateFromBackend msg model =
             , Cmd.none
             )
 
-        GameJoined game ->
-            ( { model | state = InGame game }
+        UpdateGame game ->
+            ( { model | state = NamingPlayer "" game }
             , Cmd.none
             )
 
@@ -133,11 +148,26 @@ view model =
                             , Html.button [ onClick HandleCreateGameButtonClick ] [ text "Create game" ]
                             ]
 
-                    InGame _ ->
-                        text "In game"
+                    InGame game ->
+                        div []
+                            [ div [] [ text "In game" ]
+                            , div [] [ text <| "Join Code: " ++ game.joinCode ]
+                            , div [] [ text <| "Players: " ++ String.fromInt (List.length game.players) ]
+                            ]
 
                     ConnectingToGame ->
                         text "Connecting to game"
+
+                    NamingPlayer name gameState ->
+                        div []
+                            [ h1 [] [ text "My name is" ]
+                            , Html.form [ onSubmit HandleNameSubmit ]
+                                [ input [ onInput HandleNameInput, value name ] []
+                                ]
+                            ]
+
+                    EnteringLobby _ ->
+                        text "Entering lobby"
                 ]
             ]
         ]

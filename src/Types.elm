@@ -26,19 +26,21 @@ type alias GameState =
     { id : GameId
     , joinCode : String -- the code that players can use to join the game
     , players : List Lamdera.ClientId
+    , unnamedPlayers : List Lamdera.ClientId
     }
 
 
 type FrontendState
     = OutOfGame String
     | ConnectingToGame
+    | NamingPlayer String GameState
+    | EnteringLobby GameState
     | InGame GameState
 
 
 type alias FrontendModel =
     { key : Key -- used by Browser.Navigation for things like pushUrl
     , state : FrontendState
-    , hasBeenGreeted : Bool
     }
 
 
@@ -57,12 +59,15 @@ type FrontendMsg
     | HandleJoinCodeInput String
     | HandleJoinCodeSubmit
     | HandleCreateGameButtonClick
+    | HandleNameInput String
+    | HandleNameSubmit
 
 
 type ToBackend
     = NoOpToBackend
     | CreateGame
     | JoinGame String
+    | NamePlayer GameId String
 
 
 type BackendMsg
@@ -73,4 +78,4 @@ type BackendMsg
 
 type ToFrontend
     = NoOpToFrontend
-    | GameJoined GameState
+    | UpdateGame GameState

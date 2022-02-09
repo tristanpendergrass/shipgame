@@ -1,6 +1,6 @@
 module Backend exposing (..)
 
-import Dict
+import Dict exposing (Dict)
 import Html
 import Lamdera exposing (ClientId, SessionId)
 import List.Extra
@@ -31,6 +31,24 @@ init =
     )
 
 
+removePlayerFromGames : ClientId -> Dict GameId GameState -> Dict GameId GameState
+removePlayerFromGames clientId =
+    Dict.map
+        (\gameId game ->
+            { game
+                | players = game.players |> List.filter ((/=) clientId)
+            }
+        )
+
+
+removeEmptyGames : Dict GameId GameState -> Dict GameId GameState
+removeEmptyGames =
+    Dict.filter
+        (\_ game ->
+            not <| List.isEmpty game.players
+        )
+
+
 update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
 update msg model =
     case msg of
@@ -52,6 +70,10 @@ update msg model =
                 | players =
                     model.players
                         |> Dict.remove clientId
+                , games =
+                    model.games
+                        |> removePlayerFromGames clientId
+                        |> removeEmptyGames
               }
             , Cmd.none
             )
@@ -62,6 +84,14 @@ updateFromFrontend sessionId clientId msg model =
     let
         noOp =
             ( model, Cmd.none )
+
+        sendGameUpdateToFrontend newGameState =
+            newGameState.players
+                |> List.map
+                    (\player ->
+                        Lamdera.sendToFrontend player (UpdateGame newGameState)
+                    )
+                |> Cmd.batch
     in
     case msg of
         NoOpToBackend ->
@@ -70,7 +100,7 @@ updateFromFrontend sessionId clientId msg model =
         CreateGame ->
             let
                 gameState =
-                    GameState model.gameIdNonce "JKLM" [ clientId ]
+                    GameState model.gameIdNonce "JKLM" [] [ clientId ]
             in
             ( { model
                 | games =
@@ -78,7 +108,7 @@ updateFromFrontend sessionId clientId msg model =
                         |> Dict.insert model.gameIdNonce gameState
                 , gameIdNonce = model.gameIdNonce + 1
               }
-            , Lamdera.sendToFrontend clientId (GameJoined gameState)
+            , sendGameUpdateToFrontend gameState
             )
 
         JoinGame joinCode ->
@@ -111,10 +141,19 @@ updateFromFrontend sessionId clientId msg model =
 
                         Just game ->
                             ( { model
-                                | games = Dict.insert gameId { game | players = clientId :: game.players } model.games
+                                | games = Dict.insert gameId { game | unnamedPlayers = clientId :: game.players } model.games
                               }
-                            , Lamdera.sendToFrontend clientId (GameJoined game)
+                            , sendGameUpdateToFrontend game
                             )
+
+        NamePlayer game name ->
+            ( { model
+                | players =
+                    model.players
+                        |> Dict.update clientId (Maybe.map (\player -> { player | displayName = Just name }))
+              }
+            , Cmd.none
+            )
 
 
 subscriptions : Model -> Sub BackendMsg
