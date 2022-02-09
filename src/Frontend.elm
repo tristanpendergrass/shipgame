@@ -30,7 +30,7 @@ app =
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     ( { key = key
-      , state = OutOfGame "JKLM"
+      , state = Unconnected
       }
     , Cmd.none
     )
@@ -63,9 +63,9 @@ update msg model =
 
         HandleJoinCodeInput newJoinCode ->
             case model.state of
-                OutOfGame _ ->
+                MainMenu playerId _ ->
                     ( { model
-                        | state = OutOfGame newJoinCode
+                        | state = MainMenu playerId newJoinCode
                       }
                     , Cmd.none
                     )
@@ -75,9 +75,9 @@ update msg model =
 
         HandleJoinCodeSubmit ->
             case model.state of
-                OutOfGame joinCode ->
+                MainMenu playerId joinCode ->
                     ( { model
-                        | state = ConnectingToGame
+                        | state = ConnectingToGame playerId
                       }
                     , Lamdera.sendToBackend (JoinGame joinCode)
                     )
@@ -87,9 +87,9 @@ update msg model =
 
         HandleCreateGameButtonClick ->
             case model.state of
-                OutOfGame _ ->
+                MainMenu playerId _ ->
                     ( { model
-                        | state = ConnectingToGame
+                        | state = ConnectingToGame playerId
                       }
                     , Lamdera.sendToBackend CreateGame
                     )
@@ -99,16 +99,16 @@ update msg model =
 
         HandleNameInput newName ->
             case model.state of
-                NamingPlayer _ gameState ->
-                    ( { model | state = NamingPlayer newName gameState }, Cmd.none )
+                NamingPlayer playerId _ gameState ->
+                    ( { model | state = NamingPlayer playerId newName gameState }, Cmd.none )
 
                 _ ->
                     noOp
 
         HandleNameSubmit ->
             case model.state of
-                NamingPlayer name gameState ->
-                    ( { model | state = EnteringLobby gameState }, Lamdera.sendToBackend (NamePlayer gameState.id name) )
+                NamingPlayer playerId name gameState ->
+                    ( { model | state = EnteringLobby playerId gameState }, Lamdera.sendToBackend (NamePlayer gameState.id name) )
 
                 _ ->
                     noOp
@@ -116,16 +116,33 @@ update msg model =
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
+    let
+        noOp =
+            ( model, Cmd.none )
+    in
     case msg of
         NoOpToFrontend ->
             ( model
             , Cmd.none
             )
 
+        AssignPlayerId playerId ->
+            case model.state of
+                Unconnected ->
+                    ( { model | state = MainMenu playerId "JKLM" }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    noOp
+
         UpdateGame game ->
-            ( { model | state = NamingPlayer "" game }
-            , Cmd.none
-            )
+            case model.state of
+                Unconnected ->
+                    noOp
+
+                _ ->
+                    Debug.todo "Implement"
 
 
 view : Model -> Browser.Document FrontendMsg
@@ -139,7 +156,10 @@ view model =
                 , style "padding-top" "40px"
                 ]
                 [ case model.state of
-                    OutOfGame joinCode ->
+                    Unconnected ->
+                        div [] [ text "Connecting to server..." ]
+
+                    MainMenu _ joinCode ->
                         div []
                             [ h1 [] [ text "Join a game" ]
                             , Html.form [ onSubmit HandleJoinCodeSubmit ]
@@ -149,17 +169,17 @@ view model =
                             , Html.button [ onClick HandleCreateGameButtonClick ] [ text "Create game" ]
                             ]
 
-                    InGame game ->
+                    InGame _ game ->
                         div []
                             [ div [] [ text "In game" ]
                             , div [] [ text <| "Join Code: " ++ game.joinCode ]
                             , div [] [ text <| "Players: " ++ String.fromInt (Dict.keys game.players |> List.length) ]
                             ]
 
-                    ConnectingToGame ->
+                    ConnectingToGame _ ->
                         text "Connecting to game"
 
-                    NamingPlayer name gameState ->
+                    NamingPlayer _ name gameState ->
                         div []
                             [ h1 [] [ text "My name is" ]
                             , Html.form [ onSubmit HandleNameSubmit ]
@@ -167,7 +187,7 @@ view model =
                                 ]
                             ]
 
-                    EnteringLobby _ ->
+                    EnteringLobby _ _ ->
                         text "Entering lobby"
                 ]
             ]

@@ -23,6 +23,8 @@ app =
 init : ( Model, Cmd BackendMsg )
 init =
     ( { games = Dict.empty
+      , playerIdMap = Dict.empty
+      , playerIdNonce = 0
       , gameIdNonce = 0
       }
     , Cmd.none
@@ -54,6 +56,20 @@ update msg model =
     case msg of
         NoOpBackendMsg ->
             ( model, Cmd.none )
+
+        HandleConnect _ clientId ->
+            let
+                playerId =
+                    model.playerIdNonce
+            in
+            ( { model
+                | playerIdMap =
+                    model.playerIdMap
+                        |> Dict.insert clientId playerId
+                , playerIdNonce = model.playerIdNonce + 1
+              }
+            , Lamdera.sendToFrontend clientId (AssignPlayerId playerId)
+            )
 
         HandleDisconnect _ clientId ->
             ( { model
@@ -176,5 +192,6 @@ updateFromFrontend sessionId clientId msg model =
 subscriptions : Model -> Sub BackendMsg
 subscriptions model =
     Sub.batch
-        [ Lamdera.onDisconnect HandleDisconnect
+        [ Lamdera.onConnect HandleConnect
+        , Lamdera.onDisconnect HandleDisconnect
         ]
