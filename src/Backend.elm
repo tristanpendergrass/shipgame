@@ -5,6 +5,9 @@ import Dict.Extra
 import Html
 import Lamdera exposing (ClientId, SessionId)
 import List.Extra
+import Random
+import Random.Char
+import Random.String
 import Types exposing (..)
 
 
@@ -24,6 +27,7 @@ app =
 init : ( Model, Cmd BackendMsg )
 init =
     ( { games = Dict.empty
+      , seed = Random.initialSeed 0
       , playerIdMap = Dict.empty
       , playerIdNonce = 0
       , gameIdNonce = 0
@@ -95,6 +99,11 @@ clientIdForPlayerId playerIdMap playerId =
         |> Dict.get playerId
 
 
+generateJoinCode : Random.Generator String
+generateJoinCode =
+    Random.String.string 4 Random.Char.upperCaseLatin
+
+
 updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
 updateFromFrontend sessionId clientId msg model =
     let
@@ -131,15 +140,19 @@ updateFromFrontend sessionId clientId msg model =
 
                 Just playerId ->
                     let
+                        ( joinCode, newSeed ) =
+                            Random.step generateJoinCode model.seed
+
                         gameState : GameState
                         gameState =
-                            GameState model.gameIdNonce "JKLM" Dict.empty (Dict.singleton playerId (Player playerId Nothing))
+                            GameState model.gameIdNonce joinCode Dict.empty (Dict.singleton playerId (Player playerId Nothing))
                     in
                     ( { model
                         | games =
                             model.games
                                 |> Dict.insert model.gameIdNonce gameState
                         , gameIdNonce = model.gameIdNonce + 1
+                        , seed = newSeed
                       }
                     , sendGameUpdateToFrontend gameState
                     )

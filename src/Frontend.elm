@@ -186,7 +186,8 @@ view model =
 
                     InGame _ game ->
                         div []
-                            [ div [] [ text <| "Join Code: " ++ game.joinCode ]
+                            [ div [] [ text <| "Game ID: " ++ String.fromInt game.id ]
+                            , div [] [ text <| "Join Code: " ++ game.joinCode ]
                             , div [] [ text <| "Players:" ]
                             , ul [] <|
                                 (game.players

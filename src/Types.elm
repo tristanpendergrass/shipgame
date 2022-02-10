@@ -4,6 +4,7 @@ import Browser exposing (UrlRequest)
 import Browser.Navigation exposing (Key)
 import Dict exposing (Dict)
 import Lamdera
+import Random
 import Set exposing (Set)
 import Url exposing (Url)
 
@@ -47,6 +48,7 @@ type alias FrontendModel =
 
 type alias BackendModel =
     { games : Dict GameId GameState
+    , seed : Random.Seed
     , playerIdMap : Dict Lamdera.ClientId PlayerId
     , playerIdNonce : PlayerId
     , gameIdNonce : GameId -- the id that will be assigned to the next created game
