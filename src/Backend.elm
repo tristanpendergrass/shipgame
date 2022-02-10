@@ -179,7 +179,7 @@ updateFromFrontend sessionId clientId msg model =
                     in
                     case maybeGameId of
                         Nothing ->
-                            noOp
+                            ( model, Lamdera.sendToFrontend clientId JoinGameFailed )
 
                         Just gameId ->
                             let

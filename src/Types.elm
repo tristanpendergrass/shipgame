@@ -33,7 +33,7 @@ type alias GameState =
 
 type FrontendState
     = Unconnected
-    | MainMenu PlayerId String
+    | MainMenu PlayerId String Bool -- the string is the join code and the bool is whether to show the "join code was wrong" error message
     | ConnectingToGame PlayerId
     | NamingPlayer PlayerId String GameState
     | EnteringLobby PlayerId GameState
@@ -83,3 +83,4 @@ type ToFrontend
     = NoOpToFrontend
     | AssignPlayerId PlayerId
     | UpdateGame GameState
+    | JoinGameFailed

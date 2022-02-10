@@ -63,9 +63,9 @@ update msg model =
 
         HandleJoinCodeInput newJoinCode ->
             case model.state of
-                MainMenu playerId _ ->
+                MainMenu playerId _ _ ->
                     ( { model
-                        | state = MainMenu playerId newJoinCode
+                        | state = MainMenu playerId newJoinCode False
                       }
                     , Cmd.none
                     )
@@ -75,7 +75,7 @@ update msg model =
 
         HandleJoinCodeSubmit ->
             case model.state of
-                MainMenu playerId joinCode ->
+                MainMenu playerId joinCode _ ->
                     ( { model
                         | state = ConnectingToGame playerId
                       }
@@ -87,7 +87,7 @@ update msg model =
 
         HandleCreateGameButtonClick ->
             case model.state of
-                MainMenu playerId _ ->
+                MainMenu playerId _ _ ->
                     ( { model
                         | state = ConnectingToGame playerId
                       }
@@ -129,7 +129,7 @@ updateFromBackend msg model =
         AssignPlayerId playerId ->
             case model.state of
                 Unconnected ->
-                    ( { model | state = MainMenu playerId "JKLM" }
+                    ( { model | state = MainMenu playerId "JKLM" False }
                     , Cmd.none
                     )
 
@@ -159,6 +159,16 @@ updateFromBackend msg model =
                 _ ->
                     Debug.todo "Implement"
 
+        JoinGameFailed ->
+            case model.state of
+                ConnectingToGame playerId ->
+                    ( { model | state = MainMenu playerId "" True }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    noOp
+
 
 view : Model -> Browser.Document FrontendMsg
 view model =
@@ -174,11 +184,22 @@ view model =
                     Unconnected ->
                         div [] [ text "Connecting to server..." ]
 
-                    MainMenu _ joinCode ->
+                    MainMenu _ joinCode showErrorMessage ->
                         div []
                             [ h1 [] [ text "Join a game" ]
                             , Html.form [ onSubmit HandleJoinCodeSubmit ]
-                                [ div [] [ input [ onInput HandleJoinCodeInput, value joinCode ] [] ]
+                                [ div
+                                    [ style "color" "red"
+                                    , style "opacity"
+                                        (if showErrorMessage then
+                                            "100%"
+
+                                         else
+                                            "0"
+                                        )
+                                    ]
+                                    [ text "Join code was incorrect" ]
+                                , div [] [ input [ onInput HandleJoinCodeInput, value joinCode ] [] ]
                                 , div [] [ button [ type_ "submit" ] [ text "Join" ] ]
                                 ]
                             , h1 [] [ text "Create a game" ]
