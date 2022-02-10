@@ -2,7 +2,7 @@ module Frontend exposing (..)
 
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Nav
-import Dict
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -136,10 +136,25 @@ updateFromBackend msg model =
                 _ ->
                     noOp
 
-        UpdateGame game ->
+        UpdateGame newGame ->
             case model.state of
                 Unconnected ->
                     noOp
+
+                ConnectingToGame playerId ->
+                    ( { model | state = NamingPlayer playerId "" newGame }
+                    , Cmd.none
+                    )
+
+                EnteringLobby playerId _ ->
+                    ( { model | state = InGame playerId newGame }
+                    , Cmd.none
+                    )
+
+                InGame playerId _ ->
+                    ( { model | state = InGame playerId newGame }
+                    , Cmd.none
+                    )
 
                 _ ->
                     Debug.todo "Implement"
@@ -171,9 +186,16 @@ view model =
 
                     InGame _ game ->
                         div []
-                            [ div [] [ text "In game" ]
-                            , div [] [ text <| "Join Code: " ++ game.joinCode ]
-                            , div [] [ text <| "Players: " ++ String.fromInt (Dict.keys game.players |> List.length) ]
+                            [ div [] [ text <| "Join Code: " ++ game.joinCode ]
+                            , div [] [ text <| "Players:" ]
+                            , ul [] <|
+                                (game.players
+                                    |> Dict.values
+                                    |> List.map
+                                        (\player ->
+                                            li [] [ text <| Maybe.withDefault "Anonymous" player.displayName ]
+                                        )
+                                )
                             ]
 
                     ConnectingToGame _ ->
@@ -183,7 +205,8 @@ view model =
                         div []
                             [ h1 [] [ text "My name is" ]
                             , Html.form [ onSubmit HandleNameSubmit ]
-                                [ input [ onInput HandleNameInput, value name ] []
+                                [ div [] [ input [ onInput HandleNameInput, value name ] [] ]
+                                , div [] [ button [ type_ "submit" ] [ text "Submit" ] ]
                                 ]
                             ]
 
