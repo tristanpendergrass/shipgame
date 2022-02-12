@@ -4,27 +4,15 @@ import Browser exposing (UrlRequest)
 import Browser.Navigation exposing (Key)
 import Dict exposing (Dict)
 import Lamdera
+import Player exposing (Player, PlayerId)
 import Random
 import Set exposing (Set)
+import ShipGame exposing (ShipGame)
 import Url exposing (Url)
-
-
-type alias PlayerId =
-    Int
 
 
 type alias LobbyId =
     Int
-
-
-type alias Player =
-    { id : PlayerId
-    , displayName : Maybe String
-    }
-
-
-type ShipGame
-    = ShipGameUnstarted (Dict PlayerId Player)
 
 
 type alias Lobby =

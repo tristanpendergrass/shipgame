@@ -5,9 +5,11 @@ import Dict.Extra
 import Html
 import Lamdera exposing (ClientId, SessionId)
 import List.Extra
+import Player exposing (Player, PlayerId)
 import Random
 import Random.Char
 import Random.String
+import ShipGame exposing (..)
 import Types exposing (..)
 
 
@@ -36,15 +38,28 @@ init =
     )
 
 
+getPlayers : Lobby -> Dict PlayerId Player
+getPlayers lobby =
+    case lobby.game of
+        ShipGameUnstarted players ->
+            players
+
+        ShipGameInProgress players ->
+            players
+
+
 removePlayerFromLobbies : PlayerId -> Dict LobbyId Lobby -> Dict LobbyId Lobby
 removePlayerFromLobbies removedClientId =
     Dict.map
-        (\lobbyId lobby ->
+        (\_ lobby ->
             let
                 newGame =
                     case lobby.game of
                         ShipGameUnstarted players ->
                             ShipGameUnstarted (Dict.filter (\clientId _ -> clientId /= removedClientId) players)
+
+                        ShipGameInProgress players ->
+                            ShipGameInProgress (Dict.filter (\clientId _ -> clientId /= removedClientId) players)
             in
             { lobby | game = newGame }
         )
@@ -56,9 +71,9 @@ removeEmptyGames =
         (\_ lobby ->
             let
                 noPlayers =
-                    case lobby.game of
-                        ShipGameUnstarted players ->
-                            Dict.isEmpty players
+                    lobby
+                        |> getPlayers
+                        |> Dict.isEmpty
 
                 noWaitingPlayers =
                     Dict.isEmpty lobby.waitingRoom
@@ -122,17 +137,15 @@ updateFromFrontend sessionId clientId msg model =
             ( model, Cmd.none )
 
         sendLobbyUpdateToFrontend : Lobby -> Cmd BackendMsg
-        sendLobbyUpdateToFrontend newLobbyState =
+        sendLobbyUpdateToFrontend newLobby =
             let
                 playersToUpdate =
-                    case newLobbyState.game of
-                        ShipGameUnstarted players ->
-                            players
+                    getPlayers newLobby
 
                 playerIds =
                     List.concat
                         [ Dict.keys playersToUpdate
-                        , Dict.keys newLobbyState.waitingRoom
+                        , Dict.keys newLobby.waitingRoom
                         ]
 
                 clientIds =
@@ -142,7 +155,7 @@ updateFromFrontend sessionId clientId msg model =
             clientIds
                 |> List.map
                     (\id ->
-                        Lamdera.sendToFrontend id (UpdateLobby newLobbyState)
+                        Lamdera.sendToFrontend id (UpdateLobby newLobby)
                     )
                 |> Cmd.batch
     in
@@ -239,9 +252,7 @@ updateFromFrontend sessionId clientId msg model =
                             let
                                 newGame : ShipGame
                                 newGame =
-                                    case lobby.game of
-                                        ShipGameUnstarted players ->
-                                            ShipGameUnstarted (players |> Dict.insert playerId (Player playerId (Just name)))
+                                    ShipGame.namePlayer playerId name lobby.game
 
                                 newLobby : Lobby
                                 newLobby =

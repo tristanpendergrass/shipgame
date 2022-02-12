@@ -7,6 +7,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Lamdera
+import Player exposing (Player, PlayerId)
+import ShipGame exposing (..)
 import Types exposing (..)
 import Url
 
@@ -212,14 +214,21 @@ view model =
                             , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
                             , div [] [ text <| "Players:" ]
                             , ul [] <|
-                                case lobby.game of
-                                    ShipGameUnstarted players ->
-                                        players
-                                            |> Dict.values
-                                            |> List.map
-                                                (\player ->
-                                                    li [] [ text <| Maybe.withDefault "Anonymous" player.displayName ]
-                                                )
+                                let
+                                    players =
+                                        case lobby.game of
+                                            ShipGameUnstarted p ->
+                                                p
+
+                                            ShipGameInProgress p ->
+                                                p
+                                in
+                                players
+                                    |> Dict.values
+                                    |> List.map
+                                        (\player ->
+                                            li [] [ text <| Maybe.withDefault "Anonymous" player.displayName ]
+                                        )
                             ]
 
                     ConnectingToGame _ ->
