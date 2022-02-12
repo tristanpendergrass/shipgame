@@ -13,7 +13,7 @@ type alias PlayerId =
     Int
 
 
-type alias GameId =
+type alias LobbyId =
     Int
 
 
@@ -23,11 +23,15 @@ type alias Player =
     }
 
 
-type alias GameState =
-    { id : GameId
+type ShipGame
+    = ShipGameUnstarted (Dict PlayerId Player)
+
+
+type alias Lobby =
+    { id : LobbyId
     , joinCode : String -- the code that players can use to join the game
-    , players : Dict PlayerId Player
-    , unnamedPlayers : Dict PlayerId Player
+    , waitingRoom : Dict PlayerId Player -- players that don't have a name yet
+    , game : ShipGame
     }
 
 
@@ -35,9 +39,9 @@ type FrontendState
     = Unconnected
     | MainMenu PlayerId String Bool -- the string is the join code and the bool is whether to show the "join code was wrong" error message
     | ConnectingToGame PlayerId
-    | NamingPlayer PlayerId String GameState
-    | EnteringLobby PlayerId GameState
-    | InGame PlayerId GameState
+    | NamingPlayer PlayerId String Lobby
+    | EnteringLobby PlayerId Lobby
+    | InGame PlayerId Lobby
 
 
 type alias FrontendModel =
@@ -47,11 +51,11 @@ type alias FrontendModel =
 
 
 type alias BackendModel =
-    { games : Dict GameId GameState
+    { lobbies : Dict LobbyId Lobby
     , seed : Random.Seed
     , playerIdMap : Dict Lamdera.ClientId PlayerId
     , playerIdNonce : PlayerId
-    , gameIdNonce : GameId -- the id that will be assigned to the next created game
+    , lobbyIdNonce : LobbyId -- the id that will be assigned to the next created lobby
     }
 
 
@@ -68,9 +72,9 @@ type FrontendMsg
 
 type ToBackend
     = NoOpToBackend
-    | CreateGame
+    | CreateLobby
     | JoinGame String
-    | NamePlayer GameId String
+    | NamePlayer LobbyId String
 
 
 type BackendMsg
@@ -82,5 +86,5 @@ type BackendMsg
 type ToFrontend
     = NoOpToFrontend
     | AssignPlayerId PlayerId
-    | UpdateGame GameState
+    | UpdateLobby Lobby
     | JoinGameFailed

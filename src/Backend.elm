@@ -26,33 +26,44 @@ app =
 
 init : ( Model, Cmd BackendMsg )
 init =
-    ( { games = Dict.empty
+    ( { lobbies = Dict.empty
       , seed = Random.initialSeed 0
       , playerIdMap = Dict.empty
       , playerIdNonce = 0
-      , gameIdNonce = 0
+      , lobbyIdNonce = 0
       }
     , Cmd.none
     )
 
 
-removePlayerFromGames : PlayerId -> Dict GameId GameState -> Dict GameId GameState
-removePlayerFromGames removedClientId =
+removePlayerFromLobbies : PlayerId -> Dict LobbyId Lobby -> Dict LobbyId Lobby
+removePlayerFromLobbies removedClientId =
     Dict.map
-        (\gameId game ->
-            { game
-                | players =
-                    game.players
-                        |> Dict.filter (\clientId _ -> clientId /= removedClientId)
-            }
+        (\lobbyId lobby ->
+            let
+                newGame =
+                    case lobby.game of
+                        ShipGameUnstarted players ->
+                            ShipGameUnstarted (Dict.filter (\clientId _ -> clientId /= removedClientId) players)
+            in
+            { lobby | game = newGame }
         )
 
 
-removeEmptyGames : Dict GameId GameState -> Dict GameId GameState
+removeEmptyGames : Dict LobbyId Lobby -> Dict LobbyId Lobby
 removeEmptyGames =
     Dict.filter
-        (\_ game ->
-            not <| Dict.isEmpty game.players
+        (\_ lobby ->
+            let
+                noPlayers =
+                    case lobby.game of
+                        ShipGameUnstarted players ->
+                            Dict.isEmpty players
+
+                noWaitingPlayers =
+                    Dict.isEmpty lobby.waitingRoom
+            in
+            not noPlayers || not noWaitingPlayers
         )
 
 
@@ -80,9 +91,9 @@ update msg model =
             case Dict.get clientId model.playerIdMap of
                 Just playerId ->
                     ( { model
-                        | games =
-                            model.games
-                                |> removePlayerFromGames playerId
+                        | lobbies =
+                            model.lobbies
+                                |> removePlayerFromLobbies playerId
                                 |> removeEmptyGames
                       }
                     , Cmd.none
@@ -110,12 +121,18 @@ updateFromFrontend sessionId clientId msg model =
         noOp =
             ( model, Cmd.none )
 
-        sendGameUpdateToFrontend newGameState =
+        sendLobbyUpdateToFrontend : Lobby -> Cmd BackendMsg
+        sendLobbyUpdateToFrontend newLobbyState =
             let
+                playersToUpdate =
+                    case newLobbyState.game of
+                        ShipGameUnstarted players ->
+                            players
+
                 playerIds =
                     List.concat
-                        [ Dict.keys newGameState.players
-                        , Dict.keys newGameState.unnamedPlayers
+                        [ Dict.keys playersToUpdate
+                        , Dict.keys newLobbyState.waitingRoom
                         ]
 
                 clientIds =
@@ -125,7 +142,7 @@ updateFromFrontend sessionId clientId msg model =
             clientIds
                 |> List.map
                     (\id ->
-                        Lamdera.sendToFrontend id (UpdateGame newGameState)
+                        Lamdera.sendToFrontend id (UpdateLobby newLobbyState)
                     )
                 |> Cmd.batch
     in
@@ -133,7 +150,7 @@ updateFromFrontend sessionId clientId msg model =
         NoOpToBackend ->
             noOp
 
-        CreateGame ->
+        CreateLobby ->
             case Dict.get clientId model.playerIdMap of
                 Nothing ->
                     noOp
@@ -143,18 +160,18 @@ updateFromFrontend sessionId clientId msg model =
                         ( joinCode, newSeed ) =
                             Random.step generateJoinCode model.seed
 
-                        gameState : GameState
-                        gameState =
-                            GameState model.gameIdNonce joinCode Dict.empty (Dict.singleton playerId (Player playerId Nothing))
+                        lobby : Lobby
+                        lobby =
+                            Lobby model.lobbyIdNonce joinCode Dict.empty (ShipGameUnstarted (Dict.singleton playerId (Player playerId Nothing)))
                     in
                     ( { model
-                        | games =
-                            model.games
-                                |> Dict.insert model.gameIdNonce gameState
-                        , gameIdNonce = model.gameIdNonce + 1
+                        | lobbies =
+                            model.lobbies
+                                |> Dict.insert model.lobbyIdNonce lobby
+                        , lobbyIdNonce = model.lobbyIdNonce + 1
                         , seed = newSeed
                       }
-                    , sendGameUpdateToFrontend gameState
+                    , sendLobbyUpdateToFrontend lobby
                     )
 
         JoinGame joinCode ->
@@ -165,11 +182,11 @@ updateFromFrontend sessionId clientId msg model =
                 Just playerId ->
                     let
                         maybeGameId =
-                            model.games
+                            model.lobbies
                                 |> Dict.keys
                                 |> List.Extra.find
                                     (\idx ->
-                                        case Dict.get idx model.games of
+                                        case Dict.get idx model.lobbies of
                                             Nothing ->
                                                 False
 
@@ -184,7 +201,7 @@ updateFromFrontend sessionId clientId msg model =
                         Just gameId ->
                             let
                                 maybeGame =
-                                    Dict.get gameId model.games
+                                    Dict.get gameId model.lobbies
                             in
                             case maybeGame of
                                 Nothing ->
@@ -192,20 +209,20 @@ updateFromFrontend sessionId clientId msg model =
 
                                 Just game ->
                                     let
-                                        newGame : GameState
+                                        newGame : Lobby
                                         newGame =
                                             { game
-                                                | unnamedPlayers =
-                                                    game.unnamedPlayers
+                                                | waitingRoom =
+                                                    game.waitingRoom
                                                         |> Dict.insert playerId (Player playerId Nothing)
                                             }
                                     in
                                     ( { model
-                                        | games =
-                                            model.games
+                                        | lobbies =
+                                            model.lobbies
                                                 |> Dict.insert gameId newGame
                                       }
-                                    , sendGameUpdateToFrontend newGame
+                                    , sendLobbyUpdateToFrontend newGame
                                     )
 
         NamePlayer gameId name ->
@@ -214,29 +231,33 @@ updateFromFrontend sessionId clientId msg model =
                     noOp
 
                 Just playerId ->
-                    case Dict.get gameId model.games of
+                    case Dict.get gameId model.lobbies of
                         Nothing ->
                             noOp
 
-                        Just game ->
+                        Just lobby ->
                             let
-                                newGame : GameState
+                                newGame : ShipGame
                                 newGame =
-                                    { game
-                                        | players =
-                                            game.players
-                                                |> Dict.insert playerId (Player playerId (Just name))
-                                        , unnamedPlayers =
-                                            game.unnamedPlayers
+                                    case lobby.game of
+                                        ShipGameUnstarted players ->
+                                            ShipGameUnstarted (players |> Dict.insert playerId (Player playerId (Just name)))
+
+                                newLobby : Lobby
+                                newLobby =
+                                    { lobby
+                                        | game = newGame
+                                        , waitingRoom =
+                                            lobby.waitingRoom
                                                 |> Dict.remove playerId
                                     }
                             in
                             ( { model
-                                | games =
-                                    model.games
-                                        |> Dict.insert gameId newGame
+                                | lobbies =
+                                    model.lobbies
+                                        |> Dict.insert gameId newLobby
                               }
-                            , sendGameUpdateToFrontend newGame
+                            , sendLobbyUpdateToFrontend newLobby
                             )
 
 

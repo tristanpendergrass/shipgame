@@ -91,7 +91,7 @@ update msg model =
                     ( { model
                         | state = ConnectingToGame playerId
                       }
-                    , Lamdera.sendToBackend CreateGame
+                    , Lamdera.sendToBackend CreateLobby
                     )
 
                 _ ->
@@ -136,7 +136,7 @@ updateFromBackend msg model =
                 _ ->
                     noOp
 
-        UpdateGame newGame ->
+        UpdateLobby newGame ->
             case model.state of
                 Unconnected ->
                     noOp
@@ -206,19 +206,20 @@ view model =
                             , Html.button [ onClick HandleCreateGameButtonClick ] [ text "Create game" ]
                             ]
 
-                    InGame _ game ->
+                    InGame _ lobby ->
                         div []
-                            [ div [] [ text <| "Game ID: " ++ String.fromInt game.id ]
-                            , div [] [ text <| "Join Code: " ++ game.joinCode ]
+                            [ div [] [ text <| "Game ID: " ++ String.fromInt lobby.id ]
+                            , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
                             , div [] [ text <| "Players:" ]
                             , ul [] <|
-                                (game.players
-                                    |> Dict.values
-                                    |> List.map
-                                        (\player ->
-                                            li [] [ text <| Maybe.withDefault "Anonymous" player.displayName ]
-                                        )
-                                )
+                                case lobby.game of
+                                    ShipGameUnstarted players ->
+                                        players
+                                            |> Dict.values
+                                            |> List.map
+                                                (\player ->
+                                                    li [] [ text <| Maybe.withDefault "Anonymous" player.displayName ]
+                                                )
                             ]
 
                     ConnectingToGame _ ->
