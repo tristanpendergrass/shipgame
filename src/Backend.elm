@@ -229,39 +229,64 @@ updateFromFrontend sessionId clientId msg model =
                             )
 
         StartGame lobbyId ->
-            case Dict.get clientId model.clientIdToPlayerId of
+            case Dict.get lobbyId model.lobbies of
                 Nothing ->
                     noOp
 
-                Just playerId ->
-                    case Dict.get lobbyId model.lobbies of
+                Just lobby ->
+                    case lobby.game of
                         Nothing ->
                             noOp
 
-                        Just lobby ->
-                            case lobby.game of
-                                Nothing ->
-                                    noOp
+                        Just game ->
+                            if ShipGame.isStarted game then
+                                noOp
 
-                                Just game ->
-                                    if ShipGame.isStarted game then
-                                        noOp
+                            else
+                                let
+                                    newLobby : Lobby
+                                    newLobby =
+                                        { lobby
+                                            | game = Just <| ShipGame.start game
+                                        }
+                                in
+                                ( { model
+                                    | lobbies =
+                                        model.lobbies
+                                            |> Dict.insert lobbyId newLobby
+                                  }
+                                , sendLobbyUpdateToFrontend newLobby
+                                )
 
-                                    else
-                                        let
-                                            newLobby : Lobby
-                                            newLobby =
-                                                { lobby
-                                                    | game = Just <| ShipGame.start game
-                                                }
-                                        in
-                                        ( { model
-                                            | lobbies =
-                                                model.lobbies
-                                                    |> Dict.insert lobbyId newLobby
-                                          }
-                                        , sendLobbyUpdateToFrontend newLobby
-                                        )
+        EndGame lobbyId ->
+            case Dict.get lobbyId model.lobbies of
+                Nothing ->
+                    noOp
+
+                Just lobby ->
+                    case lobby.game of
+                        Nothing ->
+                            noOp
+
+                        Just game ->
+                            if not (ShipGame.isStarted game) then
+                                noOp
+
+                            else
+                                let
+                                    newLobby : Lobby
+                                    newLobby =
+                                        { lobby
+                                            | game = Just <| ShipGame.end game
+                                        }
+                                in
+                                ( { model
+                                    | lobbies =
+                                        model.lobbies
+                                            |> Dict.insert lobbyId newLobby
+                                  }
+                                , sendLobbyUpdateToFrontend newLobby
+                                )
 
 
 subscriptions : Model -> Sub BackendMsg

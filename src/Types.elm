@@ -45,6 +45,7 @@ type FrontendMsg
     | HandleNameInput String
     | HandleNameSubmit
     | HandleStartGameClick
+    | HandleEndGameClick
 
 
 type ToBackend
@@ -53,6 +54,7 @@ type ToBackend
     | JoinGame String
     | NamePlayer LobbyId String
     | StartGame LobbyId
+    | EndGame LobbyId
 
 
 type BackendMsg

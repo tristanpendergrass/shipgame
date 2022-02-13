@@ -8,6 +8,7 @@ import Player exposing (Player, PlayerId)
 type ShipGame
     = ShipGameUnstarted (Nonempty PlayerId)
     | ShipGameInProgress (Nonempty PlayerId)
+    | ShipGameFinished (Nonempty PlayerId) PlayerId -- <- winner
 
 
 create : PlayerId -> ShipGame
@@ -24,6 +25,22 @@ start shipGame =
         ShipGameInProgress playerIds ->
             ShipGameInProgress playerIds
 
+        ShipGameFinished playerIds winner ->
+            ShipGameInProgress playerIds
+
+
+end : ShipGame -> ShipGame
+end shipGame =
+    let
+        players =
+            getPlayers shipGame
+    in
+    ShipGameFinished players (List.Nonempty.head players)
+
+
+
+-- TODO: this should not exist. a ship game shouldn't support adding people in halfway through so it should be created with all players and not support adding
+
 
 addPlayer : PlayerId -> ShipGame -> ShipGame
 addPlayer playerId shipGame =
@@ -33,6 +50,9 @@ addPlayer playerId shipGame =
 
         ShipGameInProgress playerIds ->
             ShipGameInProgress (List.Nonempty.append playerIds (List.Nonempty.singleton playerId))
+
+        ShipGameFinished playerIds winner ->
+            ShipGameFinished (List.Nonempty.append playerIds (List.Nonempty.singleton playerId)) winner
 
 
 removePlayer : PlayerId -> ShipGame -> Maybe ShipGame
@@ -54,6 +74,9 @@ removePlayer playerId shipGame =
                 ShipGameInProgress _ ->
                     Just <| ShipGameInProgress (List.Nonempty.Nonempty firstPlayer rest)
 
+                ShipGameFinished _ _ ->
+                    Nothing
+
         [] ->
             Nothing
 
@@ -67,6 +90,9 @@ getPlayers shipGame =
         ShipGameInProgress playerIds ->
             playerIds
 
+        ShipGameFinished playerIds _ ->
+            playerIds
+
 
 isStarted : ShipGame -> Bool
 isStarted shipGame =
@@ -75,4 +101,7 @@ isStarted shipGame =
             False
 
         ShipGameInProgress _ ->
+            True
+
+        ShipGameFinished _ _ ->
             True

@@ -124,6 +124,14 @@ update msg model =
                 _ ->
                     noOp
 
+        HandleEndGameClick ->
+            case model.state of
+                InGame playerId lobby ->
+                    ( model, Lamdera.sendToBackend (EndGame lobby.id) )
+
+                _ ->
+                    noOp
+
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
@@ -266,6 +274,9 @@ view model =
 
                                             ShipGameInProgress _ ->
                                                 div [] [ text "Game in progress" ]
+
+                                            ShipGameFinished _ _ ->
+                                                div [] [ text "Game Finished" ]
                                         ]
                             ]
                 ]
