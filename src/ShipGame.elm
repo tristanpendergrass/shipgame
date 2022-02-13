@@ -56,3 +56,13 @@ getPlayers shipGame =
 
         ShipGameInProgress playerIds ->
             playerIds
+
+
+isStarted : ShipGame -> Bool
+isStarted shipGame =
+    case shipGame of
+        ShipGameUnstarted _ ->
+            False
+
+        ShipGameInProgress _ ->
+            True

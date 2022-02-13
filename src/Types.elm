@@ -51,6 +51,7 @@ type ToBackend
     | CreateLobby
     | JoinGame String
     | NamePlayer LobbyId String
+    | StartGame LobbyId
 
 
 type BackendMsg
