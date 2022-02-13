@@ -9,10 +9,6 @@ type ShipGame
     | ShipGameInProgress (List PlayerId)
 
 
-
--- TODO: Make this take a player id
-
-
 create : ShipGame
 create =
     ShipGameUnstarted []

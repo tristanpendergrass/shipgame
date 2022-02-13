@@ -1,8 +1,8 @@
 module Lobby exposing (..)
 
+import Dict exposing (Dict)
 import Player exposing (..)
 import ShipGame exposing (..)
-import Dict exposing (Dict)
 
 
 type alias LobbyId =
@@ -16,3 +16,25 @@ type alias Lobby =
     , playerData : Dict PlayerId Player -- possible todo: make this live in BackendModel instead and sync to frontend so player preferences will persist lobby to lobby
     , game : ShipGame
     }
+
+
+removePlayer : PlayerId -> Lobby -> Lobby
+removePlayer removedPlayerId lobby =
+    { lobby
+        | waitingRoom = List.filter ((/=) removedPlayerId) lobby.waitingRoom
+        , game = ShipGame.removePlayer removedPlayerId lobby.game
+    }
+
+
+isEmpty : Lobby -> Bool
+isEmpty lobby =
+    let
+        noPlayers =
+            lobby.game
+                |> ShipGame.getPlayers
+                |> List.isEmpty
+
+        noWaitingPlayers =
+            List.isEmpty lobby.waitingRoom
+    in
+    not noPlayers || not noWaitingPlayers

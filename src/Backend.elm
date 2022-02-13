@@ -2,7 +2,6 @@ module Backend exposing (..)
 
 import Dict exposing (Dict)
 import Dict.Extra
-import Html
 import Lamdera exposing (ClientId, SessionId)
 import List.Extra
 import Lobby exposing (Lobby, LobbyId)
@@ -39,36 +38,6 @@ init =
     )
 
 
-removePlayerFromLobbies : PlayerId -> Dict LobbyId Lobby -> Dict LobbyId Lobby
-removePlayerFromLobbies removedClientId =
-    Dict.map
-        (\_ lobby ->
-            { lobby
-                | waitingRoom =
-                    lobby.waitingRoom
-                        |> List.filter ((/=) removedClientId)
-                , game = ShipGame.removePlayer removedClientId lobby.game
-            }
-        )
-
-
-removeEmptyGames : Dict LobbyId Lobby -> Dict LobbyId Lobby
-removeEmptyGames =
-    Dict.filter
-        (\_ lobby ->
-            let
-                noPlayers =
-                    lobby.game
-                        |> ShipGame.getPlayers
-                        |> List.isEmpty
-
-                noWaitingPlayers =
-                    List.isEmpty lobby.waitingRoom
-            in
-            not noPlayers || not noWaitingPlayers
-        )
-
-
 update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
 update msg model =
     case msg of
@@ -95,8 +64,8 @@ update msg model =
                     ( { model
                         | lobbies =
                             model.lobbies
-                                |> removePlayerFromLobbies playerId
-                                |> removeEmptyGames
+                                |> Dict.map (\_ lobby -> Lobby.removePlayer playerId lobby)
+                                |> Dict.filter (\_ lobby -> Lobby.isEmpty lobby)
                       }
                     , Cmd.none
                     )
