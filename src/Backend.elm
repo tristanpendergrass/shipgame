@@ -252,7 +252,7 @@ updateFromFrontend sessionId clientId msg model =
                                             newLobby : Lobby
                                             newLobby =
                                                 { lobby
-                                                    | game = Just <| ShipGame.create playerId
+                                                    | game = Just <| ShipGame.start game
                                                 }
                                         in
                                         ( { model

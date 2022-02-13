@@ -16,7 +16,7 @@ type FrontendState
     | MainMenu PlayerId String Bool -- the string is the join code and the bool is whether to show the "join code was wrong" error message
     | ConnectingToGame PlayerId
     | NamingPlayer PlayerId String Lobby
-    | EnteringLobby PlayerId Lobby
+    | ConfirmingName PlayerId Lobby
     | InGame PlayerId Lobby
 
 
@@ -44,6 +44,7 @@ type FrontendMsg
     | HandleCreateGameButtonClick
     | HandleNameInput String
     | HandleNameSubmit
+    | HandleStartGameClick
 
 
 type ToBackend

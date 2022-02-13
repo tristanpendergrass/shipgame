@@ -15,6 +15,16 @@ create playerId =
     ShipGameUnstarted (List.Nonempty.singleton playerId)
 
 
+start : ShipGame -> ShipGame
+start shipGame =
+    case shipGame of
+        ShipGameUnstarted playerIds ->
+            ShipGameInProgress playerIds
+
+        ShipGameInProgress playerIds ->
+            ShipGameInProgress playerIds
+
+
 addPlayer : PlayerId -> ShipGame -> ShipGame
 addPlayer playerId shipGame =
     case shipGame of
