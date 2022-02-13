@@ -6,7 +6,6 @@ import Dict exposing (Dict)
 import Lamdera
 import Player exposing (Player, PlayerId)
 import Random
-import Set exposing (Set)
 import ShipGame exposing (ShipGame)
 import Url exposing (Url)
 
@@ -16,9 +15,11 @@ type alias LobbyId =
 
 
 type alias Lobby =
+    -- TODO: move this to its own module
     { id : LobbyId
     , joinCode : String -- the code that players can use to join the game
-    , waitingRoom : Dict PlayerId Player -- players that don't have a name yet
+    , waitingRoom : List PlayerId -- players that have joined the lobby but don't have a name yet, although this is not enforced by types
+    , playerData : Dict PlayerId Player -- possible todo: make this live in BackendModel instead and sync to frontend so player preferences will persist lobby to lobby
     , game : ShipGame
     }
 
@@ -41,7 +42,7 @@ type alias FrontendModel =
 type alias BackendModel =
     { lobbies : Dict LobbyId Lobby
     , seed : Random.Seed
-    , playerIdMap : Dict Lamdera.ClientId PlayerId
+    , clientIdToPlayerId : Dict Lamdera.ClientId PlayerId
     , playerIdNonce : PlayerId
     , lobbyIdNonce : LobbyId -- the id that will be assigned to the next created lobby
     }

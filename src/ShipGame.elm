@@ -5,15 +5,44 @@ import Player exposing (Player, PlayerId)
 
 
 type ShipGame
-    = ShipGameUnstarted (Dict PlayerId Player)
-    | ShipGameInProgress (Dict PlayerId Player)
+    = ShipGameUnstarted (List PlayerId)
+    | ShipGameInProgress (List PlayerId)
 
 
-namePlayer : PlayerId -> String -> ShipGame -> ShipGame
-namePlayer playerId name game =
-    case game of
-        ShipGameUnstarted players ->
-            ShipGameUnstarted (Dict.insert playerId (Player playerId (Just name)) players)
 
-        ShipGameInProgress players ->
-            ShipGameInProgress (Dict.insert playerId (Player playerId (Just name)) players)
+-- TODO: Make this take a player id
+
+
+create : ShipGame
+create =
+    ShipGameUnstarted []
+
+
+addPlayer : PlayerId -> ShipGame -> ShipGame
+addPlayer playerId shipGame =
+    case shipGame of
+        ShipGameUnstarted playerIds ->
+            ShipGameInProgress (playerId :: playerIds)
+
+        ShipGameInProgress playerIds ->
+            ShipGameInProgress (playerId :: playerIds)
+
+
+removePlayer : PlayerId -> ShipGame -> ShipGame
+removePlayer playerId shipGame =
+    case shipGame of
+        ShipGameUnstarted playerIds ->
+            ShipGameUnstarted (List.filter ((/=) playerId) playerIds)
+
+        ShipGameInProgress playerIds ->
+            ShipGameInProgress (List.filter ((/=) playerId) playerIds)
+
+
+getPlayers : ShipGame -> List PlayerId
+getPlayers shipGame =
+    case shipGame of
+        ShipGameUnstarted playerIds ->
+            playerIds
+
+        ShipGameInProgress playerIds ->
+            playerIds

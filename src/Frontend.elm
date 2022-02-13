@@ -215,19 +215,20 @@ view model =
                             , div [] [ text <| "Players:" ]
                             , ul [] <|
                                 let
-                                    players =
-                                        case lobby.game of
-                                            ShipGameUnstarted p ->
-                                                p
-
-                                            ShipGameInProgress p ->
-                                                p
+                                    playerIds =
+                                        ShipGame.getPlayers lobby.game
                                 in
-                                players
-                                    |> Dict.values
+                                playerIds
                                     |> List.map
-                                        (\player ->
-                                            li [] [ text <| Maybe.withDefault "Anonymous" player.displayName ]
+                                        (\playerId ->
+                                            let
+                                                displayName =
+                                                    lobby.playerData
+                                                        |> Dict.get playerId
+                                                        |> Maybe.andThen .displayName
+                                                        |> Maybe.withDefault "Anonymous"
+                                            in
+                                            li [] [ text displayName ]
                                         )
                             ]
 
