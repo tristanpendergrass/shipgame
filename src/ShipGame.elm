@@ -1,40 +1,54 @@
 module ShipGame exposing (..)
 
 import Dict exposing (Dict)
+import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
 
 
 type ShipGame
-    = ShipGameUnstarted (List PlayerId)
-    | ShipGameInProgress (List PlayerId)
+    = ShipGameUnstarted (Nonempty PlayerId)
+    | ShipGameInProgress (Nonempty PlayerId)
 
 
-create : ShipGame
-create =
-    ShipGameUnstarted []
+create : PlayerId -> ShipGame
+create playerId =
+    ShipGameUnstarted (List.Nonempty.singleton playerId)
 
 
 addPlayer : PlayerId -> ShipGame -> ShipGame
 addPlayer playerId shipGame =
     case shipGame of
         ShipGameUnstarted playerIds ->
-            ShipGameInProgress (playerId :: playerIds)
+            ShipGameUnstarted (List.Nonempty.append playerIds (List.Nonempty.singleton playerId))
 
         ShipGameInProgress playerIds ->
-            ShipGameInProgress (playerId :: playerIds)
+            ShipGameInProgress (List.Nonempty.append playerIds (List.Nonempty.singleton playerId))
 
 
-removePlayer : PlayerId -> ShipGame -> ShipGame
+removePlayer : PlayerId -> ShipGame -> Maybe ShipGame
 removePlayer playerId shipGame =
-    case shipGame of
-        ShipGameUnstarted playerIds ->
-            ShipGameUnstarted (List.filter ((/=) playerId) playerIds)
+    let
+        playerList =
+            getPlayers shipGame
+                |> List.Nonempty.toList
 
-        ShipGameInProgress playerIds ->
-            ShipGameInProgress (List.filter ((/=) playerId) playerIds)
+        filteredPlayers =
+            List.filter ((/=) playerId) playerList
+    in
+    case filteredPlayers of
+        firstPlayer :: rest ->
+            case shipGame of
+                ShipGameUnstarted _ ->
+                    Just <| ShipGameUnstarted (List.Nonempty.Nonempty firstPlayer rest)
+
+                ShipGameInProgress _ ->
+                    Just <| ShipGameInProgress (List.Nonempty.Nonempty firstPlayer rest)
+
+        [] ->
+            Nothing
 
 
-getPlayers : ShipGame -> List PlayerId
+getPlayers : ShipGame -> Nonempty PlayerId
 getPlayers shipGame =
     case shipGame of
         ShipGameUnstarted playerIds ->

@@ -96,10 +96,7 @@ updateFromFrontend sessionId clientId msg model =
         sendLobbyUpdateToFrontend newLobby =
             let
                 playerIds =
-                    List.concat
-                        [ ShipGame.getPlayers newLobby.game
-                        , newLobby.waitingRoom
-                        ]
+                    Lobby.getPlayerIds newLobby
 
                 clientIds =
                     playerIds
@@ -132,7 +129,7 @@ updateFromFrontend sessionId clientId msg model =
                             , joinCode = joinCode
                             , waitingRoom = [ playerId ]
                             , playerData = Dict.empty
-                            , game = ShipGame.create
+                            , game = Nothing
                             }
                     in
                     ( { model
@@ -206,11 +203,20 @@ updateFromFrontend sessionId clientId msg model =
 
                         Just lobby ->
                             let
+                                newGame : ShipGame
+                                newGame =
+                                    case lobby.game of
+                                        Nothing ->
+                                            ShipGame.create playerId
+
+                                        Just game ->
+                                            ShipGame.addPlayer playerId game
+
                                 newLobby : Lobby
                                 newLobby =
                                     { lobby
                                         | waitingRoom = List.filter ((/=) playerId) lobby.waitingRoom
-                                        , game = ShipGame.addPlayer playerId lobby.game
+                                        , game = Just newGame
                                         , playerData = Dict.insert playerId (Player playerId (Just name)) lobby.playerData
                                     }
                             in

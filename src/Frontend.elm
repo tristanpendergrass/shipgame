@@ -7,6 +7,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Lamdera
+import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
 import ShipGame exposing (..)
 import Types exposing (..)
@@ -210,26 +211,31 @@ view model =
 
                     InGame _ lobby ->
                         div []
-                            [ div [] [ text <| "Game ID: " ++ String.fromInt lobby.id ]
-                            , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
+                            [ div [] [ text <| "Join Code: " ++ lobby.joinCode ]
                             , div [] [ text <| "Players:" ]
-                            , ul [] <|
-                                let
-                                    playerIds =
-                                        ShipGame.getPlayers lobby.game
-                                in
-                                playerIds
-                                    |> List.map
-                                        (\playerId ->
-                                            let
-                                                displayName =
-                                                    lobby.playerData
-                                                        |> Dict.get playerId
-                                                        |> Maybe.andThen .displayName
-                                                        |> Maybe.withDefault "Anonymous"
-                                            in
-                                            li [] [ text displayName ]
-                                        )
+                            , case lobby.game of
+                                Nothing ->
+                                    div [] [ text "game does not exist" ]
+
+                                Just game ->
+                                    ul [] <|
+                                        let
+                                            playerIds =
+                                                ShipGame.getPlayers game
+                                        in
+                                        playerIds
+                                            |> List.Nonempty.toList
+                                            |> List.map
+                                                (\playerId ->
+                                                    let
+                                                        displayName =
+                                                            lobby.playerData
+                                                                |> Dict.get playerId
+                                                                |> Maybe.andThen .displayName
+                                                                |> Maybe.withDefault "Anonymous"
+                                                    in
+                                                    li [] [ text displayName ]
+                                                )
                             ]
 
                     ConnectingToGame _ ->
