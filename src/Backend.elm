@@ -5,6 +5,7 @@ import Dict.Extra
 import Html
 import Lamdera exposing (ClientId, SessionId)
 import List.Extra
+import Lobby exposing (Lobby, LobbyId)
 import Player exposing (Player, PlayerId)
 import Random
 import Random.Char
