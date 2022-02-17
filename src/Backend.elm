@@ -123,19 +123,13 @@ updateFromFrontend sessionId clientId msg model =
                         ( joinCode, newSeed ) =
                             Random.step generateJoinCode model.seed
 
-                        lobby : Lobby
                         lobby =
-                            { id = model.lobbyIdNonce
-                            , joinCode = joinCode
-                            , waitingRoom = [ playerId ]
-                            , playerData = Dict.empty
-                            , game = Nothing
-                            }
+                            Lobby.create model.lobbyIdNonce joinCode playerId
                     in
                     ( { model
                         | lobbies =
                             model.lobbies
-                                |> Dict.insert model.lobbyIdNonce lobby
+                                |> Dict.insert lobby.id lobby
                         , lobbyIdNonce = model.lobbyIdNonce + 1
                         , seed = newSeed
                       }
@@ -167,64 +161,37 @@ updateFromFrontend sessionId clientId msg model =
                             ( model, Lamdera.sendToFrontend clientId JoinGameFailed )
 
                         Just lobbyId ->
-                            let
-                                maybeLobby =
-                                    Dict.get lobbyId model.lobbies
-                            in
-                            case maybeLobby of
+                            case Dict.get lobbyId model.lobbies of
                                 Nothing ->
                                     ( model, Lamdera.sendToFrontend clientId JoinGameFailed )
 
                                 Just lobby ->
-                                    let
-                                        newLobby : Lobby
-                                        newLobby =
-                                            { lobby
-                                                | waitingRoom = playerId :: lobby.waitingRoom
-                                            }
-                                    in
-                                    ( { model
-                                        | lobbies =
-                                            model.lobbies
-                                                |> Dict.insert lobbyId newLobby
-                                      }
-                                    , sendLobbyUpdateToFrontend newLobby
-                                    )
+                                    case Lobby.addPlayer playerId lobby of
+                                        Nothing ->
+                                            ( model, Lamdera.sendToFrontend clientId JoinGameFailed )
 
-        NamePlayer gameId name ->
+                                        Just newLobby ->
+                                            ( { model | lobbies = model.lobbies |> Dict.insert lobbyId newLobby }
+                                            , sendLobbyUpdateToFrontend newLobby
+                                            )
+
+        NamePlayer lobbyId name ->
             case Dict.get clientId model.clientIdToPlayerId of
                 Nothing ->
                     noOp
 
                 Just playerId ->
-                    case Dict.get gameId model.lobbies of
+                    case Dict.get lobbyId model.lobbies of
                         Nothing ->
                             noOp
 
                         Just lobby ->
                             let
-                                newGame : ShipGame
-                                newGame =
-                                    case lobby.game of
-                                        Nothing ->
-                                            ShipGame.create playerId
-
-                                        Just game ->
-                                            ShipGame.addPlayer playerId game
-
                                 newLobby : Lobby
                                 newLobby =
-                                    { lobby
-                                        | waitingRoom = List.filter ((/=) playerId) lobby.waitingRoom
-                                        , game = Just newGame
-                                        , playerData = Dict.insert playerId (Player playerId (Just name)) lobby.playerData
-                                    }
+                                    Lobby.namePlayer playerId name lobby
                             in
-                            ( { model
-                                | lobbies =
-                                    model.lobbies
-                                        |> Dict.insert gameId newLobby
-                              }
+                            ( { model | lobbies = model.lobbies |> Dict.insert lobbyId newLobby }
                             , sendLobbyUpdateToFrontend newLobby
                             )
 
@@ -234,29 +201,17 @@ updateFromFrontend sessionId clientId msg model =
                     noOp
 
                 Just lobby ->
-                    case lobby.game of
+                    let
+                        -- Lobby.startGame will return Nothing if the game was in progress or there are no players in the lobby
+                        maybeNewLobby =
+                            Lobby.startGame lobby
+                    in
+                    case maybeNewLobby of
+                        Just newLobby ->
+                            ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }, sendLobbyUpdateToFrontend newLobby )
+
                         Nothing ->
                             noOp
-
-                        Just game ->
-                            if ShipGame.isStarted game then
-                                noOp
-
-                            else
-                                let
-                                    newLobby : Lobby
-                                    newLobby =
-                                        { lobby
-                                            | game = Just <| ShipGame.start game
-                                        }
-                                in
-                                ( { model
-                                    | lobbies =
-                                        model.lobbies
-                                            |> Dict.insert lobbyId newLobby
-                                  }
-                                , sendLobbyUpdateToFrontend newLobby
-                                )
 
         EndGame lobbyId ->
             case Dict.get lobbyId model.lobbies of
@@ -264,29 +219,11 @@ updateFromFrontend sessionId clientId msg model =
                     noOp
 
                 Just lobby ->
-                    case lobby.game of
-                        Nothing ->
-                            noOp
-
-                        Just game ->
-                            if not (ShipGame.isStarted game) then
-                                noOp
-
-                            else
-                                let
-                                    newLobby : Lobby
-                                    newLobby =
-                                        { lobby
-                                            | game = Just <| ShipGame.end game
-                                        }
-                                in
-                                ( { model
-                                    | lobbies =
-                                        model.lobbies
-                                            |> Dict.insert lobbyId newLobby
-                                  }
-                                , sendLobbyUpdateToFrontend newLobby
-                                )
+                    let
+                        newLobby =
+                            Lobby.endGame lobby
+                    in
+                    ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }, sendLobbyUpdateToFrontend newLobby )
 
 
 subscriptions : Model -> Sub BackendMsg

@@ -11,9 +11,9 @@ type ShipGame
     | ShipGameFinished (Nonempty PlayerId) PlayerId -- <- winner
 
 
-create : PlayerId -> ShipGame
-create playerId =
-    ShipGameUnstarted (List.Nonempty.singleton playerId)
+create : Nonempty PlayerId -> ShipGame
+create playerIds =
+    ShipGameUnstarted playerIds
 
 
 start : ShipGame -> ShipGame

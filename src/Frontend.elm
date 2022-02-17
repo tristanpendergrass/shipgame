@@ -8,6 +8,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Lamdera
 import List.Nonempty exposing (Nonempty)
+import Lobby exposing (GameWrapper(..), Lobby)
 import Player exposing (Player, PlayerId)
 import ShipGame exposing (..)
 import Types exposing (..)
@@ -241,44 +242,58 @@ view model =
                         text "Entering lobby"
 
                     InGame _ lobby ->
-                        div []
-                            [ div [] [ text <| "Join Code: " ++ lobby.joinCode ]
-                            , div [] [ text <| "Players:" ]
-                            , case lobby.game of
-                                Nothing ->
-                                    div [] [ text "game does not exist" ]
-
-                                Just game ->
-                                    div []
-                                        [ ul [] <|
-                                            let
-                                                playerIds =
-                                                    ShipGame.getPlayers game
-                                            in
+                        case lobby.gameWrapper of
+                            Lobby.NotStarted playerIds ->
+                                div []
+                                    [ div [] [ text "Game not started" ]
+                                    , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
+                                    , div [] [ text "Players:" ]
+                                    , div []
+                                        (List.map
+                                            (\playerId ->
+                                                let
+                                                    displayName =
+                                                        Dict.get playerId lobby.playerData
+                                                            |> Maybe.andThen .displayName
+                                                            |> Maybe.withDefault "Anonymous"
+                                                in
+                                                div [] [ text displayName ]
+                                            )
                                             playerIds
-                                                |> List.Nonempty.toList
-                                                |> List.map
-                                                    (\playerId ->
-                                                        let
-                                                            displayName =
-                                                                lobby.playerData
-                                                                    |> Dict.get playerId
-                                                                    |> Maybe.andThen .displayName
-                                                                    |> Maybe.withDefault "Anonymous"
-                                                        in
-                                                        li [] [ text displayName ]
-                                                    )
-                                        , case game of
-                                            ShipGameUnstarted _ ->
-                                                div [] [ button [ onClick HandleStartGameClick ] [ text "Start Game" ] ]
+                                        )
+                                    ]
 
-                                            ShipGameInProgress _ ->
-                                                div [] [ text "Game in progress" ]
+                            Lobby.InProgress shipGame ->
+                                div [] [ text "Game in progress" ]
 
-                                            ShipGameFinished _ _ ->
-                                                div [] [ text "Game Finished" ]
-                                        ]
-                            ]
+                -- Just game ->
+                --     div []
+                --         [ ul [] <|
+                --             let
+                --                 playerIds =
+                --                     ShipGame.getPlayers game
+                --             in
+                --             playerIds
+                --                 |> List.Nonempty.toList
+                --                 |> List.map
+                --                     (\playerId ->
+                --                         let
+                --                             displayName =
+                --                                 lobby.playerData
+                --                                     |> Dict.get playerId
+                --                                     |> Maybe.andThen .displayName
+                --                                     |> Maybe.withDefault "Anonymous"
+                --                         in
+                --                         li [] [ text displayName ]
+                --                     )
+                --         , case game of
+                --             ShipGameUnstarted _ ->
+                --                 div [] [ button [ onClick HandleStartGameClick ] [ text "Start Game" ] ]
+                --             ShipGameInProgress _ ->
+                --                 div [] [ text "Game in progress" ]
+                --             ShipGameFinished _ _ ->
+                --                 div [] [ text "Game Finished" ]
+                --         ]
                 ]
             ]
         ]
