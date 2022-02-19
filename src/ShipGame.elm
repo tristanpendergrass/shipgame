@@ -1,107 +1,41 @@
-module ShipGame exposing (..)
+module ShipGame exposing
+    ( ShipGame
+    , create
+    , getPlayers
+    , removePlayer
+    )
 
 import Dict exposing (Dict)
 import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
+import SelectList exposing (SelectList)
+import Util exposing (removeSelectListItem)
 
 
 type ShipGame
-    = ShipGameUnstarted (Nonempty PlayerId)
-    | ShipGameInProgress (Nonempty PlayerId)
-    | ShipGameFinished (Nonempty PlayerId) PlayerId -- <- winner
+    = ShipGame (SelectList PlayerId)
 
 
 create : Nonempty PlayerId -> ShipGame
-create playerIds =
-    ShipGameUnstarted playerIds
-
-
-start : ShipGame -> ShipGame
-start shipGame =
-    case shipGame of
-        ShipGameUnstarted playerIds ->
-            ShipGameInProgress playerIds
-
-        ShipGameInProgress playerIds ->
-            ShipGameInProgress playerIds
-
-        ShipGameFinished playerIds winner ->
-            ShipGameInProgress playerIds
-
-
-end : ShipGame -> ShipGame
-end shipGame =
-    let
-        players =
-            getPlayers shipGame
-    in
-    ShipGameFinished players (List.Nonempty.head players)
-
-
-
--- TODO: this should not exist. a ship game shouldn't support adding people in halfway through so it should be created with all players and not support adding
-
-
-addPlayer : PlayerId -> ShipGame -> ShipGame
-addPlayer playerId shipGame =
-    case shipGame of
-        ShipGameUnstarted playerIds ->
-            ShipGameUnstarted (List.Nonempty.append playerIds (List.Nonempty.singleton playerId))
-
-        ShipGameInProgress playerIds ->
-            ShipGameInProgress (List.Nonempty.append playerIds (List.Nonempty.singleton playerId))
-
-        ShipGameFinished playerIds winner ->
-            ShipGameFinished (List.Nonempty.append playerIds (List.Nonempty.singleton playerId)) winner
+create (List.Nonempty.Nonempty first rest) =
+    ShipGame (SelectList.fromLists [] first rest)
 
 
 removePlayer : PlayerId -> ShipGame -> Maybe ShipGame
 removePlayer playerId shipGame =
-    let
-        playerList =
-            getPlayers shipGame
-                |> List.Nonempty.toList
-
-        filteredPlayers =
-            List.filter ((/=) playerId) playerList
-    in
-    case filteredPlayers of
-        firstPlayer :: rest ->
-            case shipGame of
-                ShipGameUnstarted _ ->
-                    Just <| ShipGameUnstarted (List.Nonempty.Nonempty firstPlayer rest)
-
-                ShipGameInProgress _ ->
-                    Just <| ShipGameInProgress (List.Nonempty.Nonempty firstPlayer rest)
-
-                ShipGameFinished _ _ ->
-                    Nothing
-
-        [] ->
-            Nothing
+    case shipGame of
+        ShipGame playerIds ->
+            removeSelectListItem playerId playerIds
+                |> Maybe.map ShipGame
 
 
 getPlayers : ShipGame -> Nonempty PlayerId
 getPlayers shipGame =
     case shipGame of
-        ShipGameUnstarted playerIds ->
-            playerIds
+        ShipGame playerIds ->
+            case SelectList.toTuple playerIds of
+                ( [], selected, last ) ->
+                    List.Nonempty.Nonempty selected last
 
-        ShipGameInProgress playerIds ->
-            playerIds
-
-        ShipGameFinished playerIds _ ->
-            playerIds
-
-
-isStarted : ShipGame -> Bool
-isStarted shipGame =
-    case shipGame of
-        ShipGameUnstarted _ ->
-            False
-
-        ShipGameInProgress _ ->
-            True
-
-        ShipGameFinished _ _ ->
-            True
+                ( first :: rest, selected, last ) ->
+                    List.Nonempty.Nonempty first (List.concat [ rest, selected :: last ])
