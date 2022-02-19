@@ -5,9 +5,8 @@ import Browser.Navigation exposing (Key)
 import Dict exposing (Dict)
 import Lamdera
 import Lobby exposing (Lobby, LobbyId)
-import Player exposing (Player, PlayerId)
+import Player exposing (PlayerId)
 import Random
-import ShipGame exposing (ShipGame)
 import Url exposing (Url)
 
 

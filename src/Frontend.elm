@@ -2,12 +2,12 @@ module Frontend exposing (..)
 
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Nav
-import Dict exposing (Dict)
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Lamdera
-import List.Nonempty exposing (Nonempty)
+import List.Nonempty
 import Lobby exposing (GameWrapper(..), Lobby)
 import Player exposing (Player, PlayerId)
 import ShipGame exposing (..)
@@ -177,7 +177,7 @@ updateFromBackend msg model =
                     )
 
                 _ ->
-                    Debug.todo "Implement"
+                    noOp
 
         JoinGameFailed ->
             case model.state of
@@ -265,35 +265,6 @@ view model =
 
                             Lobby.InProgress shipGame ->
                                 div [] [ text "Game in progress" ]
-
-                -- Just game ->
-                --     div []
-                --         [ ul [] <|
-                --             let
-                --                 playerIds =
-                --                     ShipGame.getPlayers game
-                --             in
-                --             playerIds
-                --                 |> List.Nonempty.toList
-                --                 |> List.map
-                --                     (\playerId ->
-                --                         let
-                --                             displayName =
-                --                                 lobby.playerData
-                --                                     |> Dict.get playerId
-                --                                     |> Maybe.andThen .displayName
-                --                                     |> Maybe.withDefault "Anonymous"
-                --                         in
-                --                         li [] [ text displayName ]
-                --                     )
-                --         , case game of
-                --             ShipGameUnstarted _ ->
-                --                 div [] [ button [ onClick HandleStartGameClick ] [ text "Start Game" ] ]
-                --             ShipGameInProgress _ ->
-                --                 div [] [ text "Game in progress" ]
-                --             ShipGameFinished _ _ ->
-                --                 div [] [ text "Game Finished" ]
-                --         ]
                 ]
             ]
         ]
