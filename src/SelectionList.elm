@@ -40,3 +40,8 @@ filter shouldKeep list =
 
             ( newSelection :: rest, [] ) ->
                 Just (fromLists (List.reverse rest) newSelection [])
+
+
+getSelected : SelectionList a -> a
+getSelected (SelectionList _ selected _) =
+    selected
