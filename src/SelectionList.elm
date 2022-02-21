@@ -15,19 +15,22 @@ toTuple (SelectionList listBefore selected listAfter) =
     ( listBefore, selected, listAfter )
 
 
-removeSelectionListItem : a -> SelectionList a -> Maybe (SelectionList a)
-removeSelectionListItem removedItem list =
+filter : (a -> Bool) -> SelectionList a -> Maybe (SelectionList a)
+filter shouldKeep list =
     let
         ( listBefore, selected, listAfter ) =
             toTuple list
 
         filteredListBefore =
-            List.filter ((/=) removedItem) listBefore
+            List.filter shouldKeep listBefore
 
         filteredListAfter =
-            List.filter ((/=) removedItem) listAfter
+            List.filter shouldKeep listAfter
     in
-    if selected == removedItem then
+    if shouldKeep selected then
+        Just (fromLists filteredListBefore selected filteredListAfter)
+
+    else
         case ( List.reverse filteredListBefore, filteredListAfter ) of
             ( [], [] ) ->
                 Nothing
@@ -37,6 +40,3 @@ removeSelectionListItem removedItem list =
 
             ( newSelection :: rest, [] ) ->
                 Just (fromLists (List.reverse rest) newSelection [])
-
-    else
-        Just (fromLists filteredListBefore selected filteredListAfter)
