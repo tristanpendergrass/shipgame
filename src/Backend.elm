@@ -29,6 +29,8 @@ app =
 init : ( Model, Cmd BackendMsg )
 init =
     ( { lobbies = Dict.empty
+
+      -- TODO: set seed using random process somehow
       , seed = Random.initialSeed 0
       , clientIdToPlayerId = Dict.empty
       , playerIdNonce = 0
@@ -120,18 +122,24 @@ updateFromFrontend sessionId clientId msg model =
 
                 Just playerId ->
                     let
-                        ( joinCode, newSeed ) =
-                            Random.step generateJoinCode model.seed
+                        seed1 =
+                            model.seed
+
+                        ( joinCode, seed2 ) =
+                            Random.step generateJoinCode seed1
+
+                        ( seed3, seed4 ) =
+                            Random.step Random.independentSeed seed2
 
                         lobby =
-                            Lobby.create model.lobbyIdNonce joinCode playerId
+                            Lobby.create model.lobbyIdNonce joinCode playerId seed3
                     in
                     ( { model
                         | lobbies =
                             model.lobbies
                                 |> Dict.insert lobby.id lobby
                         , lobbyIdNonce = model.lobbyIdNonce + 1
-                        , seed = newSeed
+                        , seed = seed4
                       }
                     , sendLobbyUpdateToFrontend lobby
                     )

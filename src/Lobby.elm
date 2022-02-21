@@ -3,6 +3,7 @@ module Lobby exposing (..)
 import Dict exposing (Dict)
 import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
+import Random
 import ShipGame exposing (ShipGame)
 
 
@@ -24,15 +25,17 @@ type alias Lobby =
     , joinCode : String -- the code that players can use to join the game
     , playerData : Dict PlayerId Player -- possible todo: make this live in BackendModel instead and sync to frontend so player preferences will persist lobby to lobby
     , gameWrapper : GameWrapper
+    , seed : Random.Seed
     }
 
 
-create : LobbyId -> String -> PlayerId -> Lobby
-create lobbyId joinCode playerId =
+create : LobbyId -> String -> PlayerId -> Random.Seed -> Lobby
+create lobbyId joinCode playerId seed =
     { id = lobbyId
     , joinCode = joinCode
     , playerData = Dict.singleton playerId (Player playerId Nothing)
     , gameWrapper = NotStarted [ playerId ]
+    , seed = seed
     }
 
 
@@ -82,7 +85,7 @@ startGame lobby =
         NotStarted (firstPlayer :: rest) ->
             let
                 game =
-                    ShipGame.create (List.Nonempty.Nonempty firstPlayer rest)
+                    ShipGame.create (List.Nonempty.Nonempty firstPlayer rest) lobby.seed
             in
             Just { lobby | gameWrapper = InProgress game }
 

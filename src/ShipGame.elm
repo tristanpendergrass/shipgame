@@ -81,6 +81,7 @@ shipGameUpdate msg shipGame =
         Roll ->
             case shipGame.dice of
                 RolledThrice _ ->
+                    -- Can't roll more than three times
                     noOp
 
                 RolledTwice diceValues ->
@@ -93,8 +94,13 @@ shipGameUpdate msg shipGame =
 
                         newDice =
                             RolledThrice newDiceValues
+
+                        newGame =
+                            shipGame
+                                |> updateDice newDice
+                                |> updateSeed newSeed
                     in
-                    GameContinues (updateDice newDice shipGame)
+                    GameContinues newGame
 
                 RolledOnce diceValues ->
                     let
@@ -114,8 +120,23 @@ shipGameUpdate msg shipGame =
                     in
                     GameContinues newShipGame
 
-                _ ->
-                    Debug.todo "Implement"
+                NeverRolled ->
+                    let
+                        numDiceToRoll =
+                            5
+
+                        ( newDiceValues, newSeed ) =
+                            Random.step (rollDice numDiceToRoll) shipGame.seed
+
+                        newDice =
+                            RolledOnce newDiceValues
+
+                        newShipGame =
+                            shipGame
+                                |> updateDice newDice
+                                |> updateSeed newSeed
+                    in
+                    GameContinues newShipGame
 
         _ ->
             Debug.todo "Implement"
