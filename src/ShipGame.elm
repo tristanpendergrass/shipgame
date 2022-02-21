@@ -36,10 +36,12 @@ type Dice
     | RolledThrice (List ( Int, Bool )) -- <- The results of the third throw. Could have length 1 to 5
 
 
-type
-    ShipGame
-    -- TODO: Refactor to a record
-    = ShipGame Int (SelectionList ShipGamePlayer) Dice Random.Seed
+type alias ShipGame =
+    { round : Int
+    , players : SelectionList ShipGamePlayer
+    , dice : Dice
+    , seed : Random.Seed
+    }
 
 
 type ShipGameMsg
@@ -60,13 +62,13 @@ rollDice numDiceToRoll =
 
 
 updateDice : Dice -> ShipGame -> ShipGame
-updateDice newDice (ShipGame round players _ seed) =
-    ShipGame round players newDice seed
+updateDice newDice shipGame =
+    { shipGame | dice = newDice }
 
 
 updateSeed : Random.Seed -> ShipGame -> ShipGame
-updateSeed newSeed (ShipGame round players dice _) =
-    ShipGame round players dice newSeed
+updateSeed newSeed shipGame =
+    { shipGame | seed = newSeed }
 
 
 shipGameUpdate : ShipGameMsg -> ShipGame -> ShipGameUpdateResult
@@ -74,15 +76,10 @@ shipGameUpdate msg shipGame =
     let
         noOp =
             GameContinues shipGame
-
-        ( dice, seed ) =
-            case shipGame of
-                ShipGame _ _ d s ->
-                    ( d, s )
     in
     case msg of
         Roll ->
-            case dice of
+            case shipGame.dice of
                 RolledThrice _ ->
                     noOp
 
@@ -92,7 +89,7 @@ shipGameUpdate msg shipGame =
                             List.length diceValues
 
                         ( newDiceValues, newSeed ) =
-                            Random.step (rollDice numDiceToRoll) seed
+                            Random.step (rollDice numDiceToRoll) shipGame.seed
 
                         newDice =
                             RolledThrice newDiceValues
@@ -105,7 +102,7 @@ shipGameUpdate msg shipGame =
                             List.length diceValues
 
                         ( newDiceValues, newSeed ) =
-                            Random.step (rollDice numDiceToRoll) seed
+                            Random.step (rollDice numDiceToRoll) shipGame.seed
 
                         newDice =
                             RolledTwice newDiceValues
@@ -148,34 +145,33 @@ create (List.Nonempty.Nonempty first rest) initialSeed =
 
 removePlayer : PlayerId -> ShipGame -> Maybe ShipGame
 removePlayer playerId shipGame =
-    case shipGame of
-        ShipGame round players dice seed ->
-            let
-                selectedPlayerWasRemoved =
-                    players
-                        |> SelectionList.getSelected
-                        |> (\player -> player.id == playerId)
+    let
+        { round, players, dice, seed } =
+            shipGame
 
-                newDice =
-                    if selectedPlayerWasRemoved then
-                        NeverRolled
+        selectedPlayerWasRemoved =
+            players
+                |> SelectionList.getSelected
+                |> (\player -> player.id == playerId)
 
-                    else
-                        dice
-            in
-            SelectionList.filter (.id >> (/=) playerId) players
-                |> Maybe.map (\newPlayers -> ShipGame round newPlayers newDice seed)
+        newDice =
+            if selectedPlayerWasRemoved then
+                NeverRolled
+
+            else
+                dice
+    in
+    SelectionList.filter (.id >> (/=) playerId) players
+        |> Maybe.map (\newPlayers -> ShipGame round newPlayers newDice seed)
 
 
 getPlayers : ShipGame -> Nonempty PlayerId
-getPlayers shipGame =
-    case shipGame of
-        ShipGame _ playerIds _ _ ->
-            case SelectionList.toTuple playerIds of
-                ( [], selected, last ) ->
-                    List.Nonempty.Nonempty selected last
-                        |> List.Nonempty.map .id
+getPlayers { players } =
+    case SelectionList.toTuple players of
+        ( [], selected, last ) ->
+            List.Nonempty.Nonempty selected last
+                |> List.Nonempty.map .id
 
-                ( first :: rest, selected, last ) ->
-                    List.Nonempty.Nonempty first (List.concat [ rest, selected :: last ])
-                        |> List.Nonempty.map .id
+        ( first :: rest, selected, last ) ->
+            List.Nonempty.Nonempty first (List.concat [ rest, selected :: last ])
+                |> List.Nonempty.map .id
