@@ -45,3 +45,18 @@ filter shouldKeep list =
 getSelected : SelectionList a -> a
 getSelected (SelectionList _ selected _) =
     selected
+
+
+selectNext : SelectionList a -> Maybe (SelectionList a)
+selectNext selectionList =
+    case toTuple selectionList of
+        ( before, selected, [] ) ->
+            Nothing
+
+        ( before, selected, first :: rest ) ->
+            Just (fromLists (List.concat [ before, [ selected ] ]) first rest)
+
+
+toList : SelectionList a -> List a
+toList (SelectionList listBefore selected listAfter) =
+    List.concat [ listBefore, [ selected ], listAfter ]

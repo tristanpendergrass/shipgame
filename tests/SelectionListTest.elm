@@ -40,4 +40,11 @@ suite =
                         (SelectionList.filter ((/=) 1) (SelectionList.fromLists [ 1, 1, 1 ] 1 [ 1, 1, 1 ]))
                         Nothing
             ]
+        , describe "selectNext"
+            [ test "works" <|
+                \_ ->
+                    Expect.equal
+                        (SelectionList.selectNext (SelectionList.fromLists [ 0, 1 ] 2 [ 3, 4 ]))
+                        (Just (SelectionList.fromLists [ 0, 1, 2 ] 3 [ 4 ]))
+            ]
         ]

@@ -21,6 +21,15 @@ type Ship
     | ShipWithFive Int Int
 
 
+type AddToShipError
+    = AddToShipError
+
+
+addDieToShip : Int -> Ship -> Result AddToShipError Ship
+addDieToShip =
+    Debug.todo "Implement"
+
+
 type alias ShipGamePlayer =
     { id : PlayerId
     , ship : Ship
@@ -69,6 +78,21 @@ updateDice newDice shipGame =
 updateSeed : Random.Seed -> ShipGame -> ShipGame
 updateSeed newSeed shipGame =
     { shipGame | seed = newSeed }
+
+
+endGame : ShipGame -> ShipGameUpdateResult
+endGame shipGame =
+    let
+        players =
+            SelectionList.toList shipGame.players
+
+        convertPlayer player =
+            { id = player.id, ships = player.ship :: player.pastShips }
+
+        gameOverPlayerData =
+            List.map convertPlayer players
+    in
+    GameOver gameOverPlayerData
 
 
 shipGameUpdate : ShipGameMsg -> ShipGame -> ShipGameUpdateResult
@@ -137,6 +161,26 @@ shipGameUpdate msg shipGame =
                                 |> updateSeed newSeed
                     in
                     GameContinues newShipGame
+
+        Pass ->
+            case SelectionList.selectNext shipGame.players of
+                Just newPlayers ->
+                    GameContinues { shipGame | dice = NeverRolled, players = newPlayers }
+
+                Nothing ->
+                    -- All players have passed, round is over.
+                    case shipGame.round of
+                        2 ->
+                            endGame shipGame
+
+                        1 ->
+                            GameContinues shipGame
+
+                        0 ->
+                            GameContinues shipGame
+
+                        _ ->
+                            noOp
 
         _ ->
             Debug.todo "Implement"
