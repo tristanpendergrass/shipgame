@@ -60,3 +60,8 @@ selectNext selectionList =
 toList : SelectionList a -> List a
 toList (SelectionList listBefore selected listAfter) =
     List.concat [ listBefore, [ selected ], listAfter ]
+
+
+mapSelected : (a -> a) -> SelectionList a -> SelectionList a
+mapSelected fn (SelectionList listBefore selected listAfter) =
+    fromLists listBefore (fn selected) listAfter

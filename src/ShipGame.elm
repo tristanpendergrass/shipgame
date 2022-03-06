@@ -70,14 +70,29 @@ rollDice numDiceToRoll =
         |> Random.map (List.map (\value -> ( value, False )))
 
 
-updateDice : Dice -> ShipGame -> ShipGame
-updateDice newDice shipGame =
+setDice : Dice -> ShipGame -> ShipGame
+setDice newDice shipGame =
     { shipGame | dice = newDice }
 
 
-updateSeed : Random.Seed -> ShipGame -> ShipGame
-updateSeed newSeed shipGame =
+updateDice : (Dice -> Dice) -> ShipGame -> ShipGame
+updateDice fn shipGame =
+    { shipGame | dice = fn shipGame.dice }
+
+
+setSeed : Random.Seed -> ShipGame -> ShipGame
+setSeed newSeed shipGame =
     { shipGame | seed = newSeed }
+
+
+updatePlayers : (SelectionList ShipGamePlayer -> SelectionList ShipGamePlayer) -> ShipGame -> ShipGame
+updatePlayers fn shipGame =
+    { shipGame | players = fn shipGame.players }
+
+
+updateCurrentShip : (Ship -> Ship) -> ShipGame -> ShipGame
+updateCurrentShip fn =
+    updatePlayers (SelectionList.mapSelected (\player -> { player | ship = fn player.ship }))
 
 
 endGame : ShipGame -> ShipGameUpdateResult
@@ -93,6 +108,25 @@ endGame shipGame =
             List.map convertPlayer players
     in
     GameOver gameOverPlayerData
+
+
+applyDiceToShip : List ( Int, Bool ) -> Ship -> Ship
+applyDiceToShip diceValues ship =
+    diceValues
+        |> List.foldl
+            (\( diceValue, keep ) selectedShipResult ->
+                Result.andThen
+                    (\selectedShip ->
+                        if keep then
+                            addDieToShip diceValue selectedShip
+
+                        else
+                            Ok selectedShip
+                    )
+                    selectedShipResult
+            )
+            (Ok ship)
+        |> Result.withDefault ship
 
 
 shipGameUpdate : ShipGameMsg -> ShipGame -> ShipGameUpdateResult
@@ -111,38 +145,38 @@ shipGameUpdate msg shipGame =
                 RolledTwice diceValues ->
                     let
                         numDiceToRoll =
-                            List.length diceValues
+                            diceValues
+                                |> List.filter (\( _, keep ) -> not keep)
+                                |> List.length
 
                         ( newDiceValues, newSeed ) =
                             Random.step (rollDice numDiceToRoll) shipGame.seed
 
-                        newDice =
-                            RolledThrice newDiceValues
-
                         newGame =
                             shipGame
-                                |> updateDice newDice
-                                |> updateSeed newSeed
+                                |> updateCurrentShip (applyDiceToShip diceValues)
+                                |> setDice (RolledThrice newDiceValues)
+                                |> setSeed newSeed
                     in
                     GameContinues newGame
 
                 RolledOnce diceValues ->
                     let
                         numDiceToRoll =
-                            List.length diceValues
+                            diceValues
+                                |> List.filter (\( _, keep ) -> not keep)
+                                |> List.length
 
                         ( newDiceValues, newSeed ) =
                             Random.step (rollDice numDiceToRoll) shipGame.seed
 
-                        newDice =
-                            RolledTwice newDiceValues
-
-                        newShipGame =
+                        newGame =
                             shipGame
-                                |> updateDice newDice
-                                |> updateSeed newSeed
+                                |> updateCurrentShip (applyDiceToShip diceValues)
+                                |> setDice (RolledTwice newDiceValues)
+                                |> setSeed newSeed
                     in
-                    GameContinues newShipGame
+                    GameContinues newGame
 
                 NeverRolled ->
                     let
@@ -152,13 +186,10 @@ shipGameUpdate msg shipGame =
                         ( newDiceValues, newSeed ) =
                             Random.step (rollDice numDiceToRoll) shipGame.seed
 
-                        newDice =
-                            RolledOnce newDiceValues
-
                         newShipGame =
                             shipGame
-                                |> updateDice newDice
-                                |> updateSeed newSeed
+                                |> setDice (RolledOnce newDiceValues)
+                                |> setSeed newSeed
                     in
                     GameContinues newShipGame
 
