@@ -6,6 +6,7 @@ module ShipGame exposing
     )
 
 import Dict exposing (Dict)
+import List.Extra
 import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
 import Random
@@ -25,8 +26,8 @@ type AddToShipError
     = AddToShipError
 
 
-addDieToShip : Int -> Ship -> Result AddToShipError Ship
-addDieToShip =
+addToShip : Int -> Ship -> Result AddToShipError Ship
+addToShip =
     Debug.todo "Implement"
 
 
@@ -75,6 +76,60 @@ setDice newDice shipGame =
     { shipGame | dice = newDice }
 
 
+type KeepDieError
+    = KeepDieError
+
+
+setDiceValues : List ( Int, Bool ) -> Dice -> Dice
+setDiceValues newDiceValues dice =
+    case dice of
+        NeverRolled ->
+            dice
+
+        RolledOnce _ ->
+            RolledOnce newDiceValues
+
+        RolledTwice _ ->
+            RolledTwice newDiceValues
+
+        RolledThrice _ ->
+            RolledThrice newDiceValues
+
+
+keepDie : Int -> Dice -> Result KeepDieError ( Int, Dice )
+keepDie index dice =
+    let
+        maybeDiceList =
+            case dice of
+                NeverRolled ->
+                    Nothing
+
+                RolledOnce results ->
+                    Just results
+
+                RolledTwice results ->
+                    Just results
+
+                RolledThrice results ->
+                    Just results
+    in
+    case maybeDiceList of
+        Nothing ->
+            Err KeepDieError
+
+        Just diceList ->
+            case List.Extra.getAt index diceList of
+                Nothing ->
+                    Err KeepDieError
+
+                Just ( dieValue, _ ) ->
+                    let
+                        newDiceList =
+                            List.Extra.updateAt index (\( value, _ ) -> ( value, True )) diceList
+                    in
+                    Ok ( dieValue, setDiceValues newDiceList dice )
+
+
 updateDice : (Dice -> Dice) -> ShipGame -> ShipGame
 updateDice fn shipGame =
     { shipGame | dice = fn shipGame.dice }
@@ -118,7 +173,7 @@ applyDiceToShip diceValues ship =
                 Result.andThen
                     (\selectedShip ->
                         if keep then
-                            addDieToShip diceValue selectedShip
+                            addToShip diceValue selectedShip
 
                         else
                             Ok selectedShip
@@ -127,6 +182,11 @@ applyDiceToShip diceValues ship =
             )
             (Ok ship)
         |> Result.withDefault ship
+
+
+addSelectedShipToPastShips : ShipGame -> ShipGame
+addSelectedShipToPastShips =
+    updatePlayers (SelectionList.mapSelected (\player -> { player | pastShips = player.ship :: player.pastShips, ship = ShipWithNothing }))
 
 
 shipGameUpdate : ShipGameMsg -> ShipGame -> ShipGameUpdateResult
@@ -194,8 +254,13 @@ shipGameUpdate msg shipGame =
                     GameContinues newShipGame
 
         Pass ->
-            case SelectionList.selectNext shipGame.players of
+            let
+                playersWithUpdatedSelectedPlayer =
+                    SelectionList.mapSelected (\player -> { player | pastShips = player.ship :: player.pastShips, ship = ShipWithNothing }) shipGame.players
+            in
+            case SelectionList.selectNext playersWithUpdatedSelectedPlayer of
                 Just newPlayers ->
+                    -- The round is not over, select next player
                     GameContinues { shipGame | dice = NeverRolled, players = newPlayers }
 
                 Nothing ->
@@ -213,8 +278,18 @@ shipGameUpdate msg shipGame =
                         _ ->
                             noOp
 
-        _ ->
-            Debug.todo "Implement"
+        Keep index ->
+            case keepDie index shipGame.dice of
+                Err _ ->
+                    noOp
+
+                Ok ( dieValue, newDice ) ->
+                    let
+                        newGame =
+                            shipGame
+                                |> setDice newDice
+                    in
+                    Debug.todo "Implement"
 
 
 create : Nonempty PlayerId -> Random.Seed -> ShipGame
