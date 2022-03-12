@@ -5,6 +5,7 @@ module ShipGame exposing
     , removePlayer
     )
 
+import Dice exposing (Dice(..))
 import Dict exposing (Dict)
 import List.Extra
 import List.Nonempty exposing (Nonempty)
@@ -38,14 +39,6 @@ type alias ShipGamePlayer =
     }
 
 
-type Dice
-    = NeverRolled
-      -- The tuple Int is the value rolled. The bool indicates whether the player wants to keep or not. The "keep" value will be ignored by the update fn if it's illegal
-    | RolledOnce (List ( Int, Bool )) -- <- The results of the first throw. Should have length 5.
-    | RolledTwice (List ( Int, Bool )) -- <- The results of the second throw. Could have length 1 to 5
-    | RolledThrice (List ( Int, Bool )) -- <- The results of the third throw. Could have length 1 to 5
-
-
 type alias ShipGame =
     { round : Int
     , players : SelectionList ShipGamePlayer
@@ -63,12 +56,6 @@ type ShipGameMsg
 type ShipGameUpdateResult
     = GameContinues ShipGame
     | GameOver (List { id : PlayerId, ships : List Ship })
-
-
-rollDice : Int -> Random.Generator (List ( Int, Bool ))
-rollDice numDiceToRoll =
-    Random.list numDiceToRoll (Random.int 1 6)
-        |> Random.map (List.map (\value -> ( value, False )))
 
 
 setDice : Dice -> ShipGame -> ShipGame
@@ -210,7 +197,7 @@ shipGameUpdate msg shipGame =
                                 |> List.length
 
                         ( newDiceValues, newSeed ) =
-                            Random.step (rollDice numDiceToRoll) shipGame.seed
+                            Random.step (Dice.diceValueGenerator numDiceToRoll) shipGame.seed
 
                         newGame =
                             shipGame
@@ -228,7 +215,7 @@ shipGameUpdate msg shipGame =
                                 |> List.length
 
                         ( newDiceValues, newSeed ) =
-                            Random.step (rollDice numDiceToRoll) shipGame.seed
+                            Random.step (Dice.diceValueGenerator numDiceToRoll) shipGame.seed
 
                         newGame =
                             shipGame
@@ -244,7 +231,7 @@ shipGameUpdate msg shipGame =
                             5
 
                         ( newDiceValues, newSeed ) =
-                            Random.step (rollDice numDiceToRoll) shipGame.seed
+                            Random.step (Dice.diceValueGenerator numDiceToRoll) shipGame.seed
 
                         newShipGame =
                             shipGame
