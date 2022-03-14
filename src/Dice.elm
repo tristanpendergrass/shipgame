@@ -1,4 +1,4 @@
-module Dice exposing (Dice, create, diceValueGenerator, keepDie, roll, sort)
+module Dice exposing (Dice, create, diceValueGenerator, keep, roll, sort)
 
 import List.Extra
 import Random
@@ -97,8 +97,8 @@ type KeepDieError
     | KeepDieOutOfOrder -- When user tries to keep e.g. a 5 before a 6 has been kept
 
 
-keepDie : Int -> Dice -> Result KeepDieError ( Int, Dice )
-keepDie index dice =
+keep : Int -> Dice -> Result KeepDieError ( Int, Dice )
+keep index dice =
     let
         maybeValues =
             case dice of
