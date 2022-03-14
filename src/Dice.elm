@@ -92,12 +92,46 @@ sort =
 
 
 type KeepDieError
-    = KeepDieError
+    = KeepDieInvalidIndex
+    | KeepDieAlreadyKept
+    | KeepDieOutOfOrder -- When user tries to keep e.g. a 5 before a 6 has been kept
 
 
 keepDie : Int -> Dice -> Result KeepDieError ( Int, Dice )
 keepDie index dice =
-    Debug.todo "Implement"
+    let
+        maybeValues =
+            case dice of
+                NeverRolled ->
+                    Nothing
+
+                RolledOnce values ->
+                    Just values
+
+                RolledTwice values ->
+                    Just values
+
+                RolledThrice values ->
+                    Just values
+    in
+    case maybeValues of
+        Nothing ->
+            Err KeepDieInvalidIndex
+
+        Just values ->
+            case List.Extra.getAt index values of
+                Nothing ->
+                    Err KeepDieInvalidIndex
+
+                Just ( value, keep ) ->
+                    if keep then
+                        Err KeepDieAlreadyKept
+
+                    else if not (dieIsLegal value values) then
+                        Err KeepDieOutOfOrder
+
+                    else
+                        Ok ( value, mapDieValues (\_ -> List.Extra.setAt index ( value, True ) values) dice )
 
 
 
@@ -123,3 +157,35 @@ mapDieValues fn dice =
 
         RolledThrice values ->
             RolledThrice (fn values)
+
+
+{-| This function will verify that the given die can be kept. It assumes the dieValue are in a legal state.
+-}
+dieIsLegal : Int -> List ( Int, Bool ) -> Bool
+dieIsLegal dieToKeep dieValues =
+    let
+        keptDieValues =
+            dieValues
+                |> List.filter Tuple.second
+                |> List.map Tuple.first
+
+        hasSix =
+            List.member 6 keptDieValues
+
+        hasFive =
+            List.member 5 keptDieValues
+
+        hasFour =
+            List.member 4 keptDieValues
+    in
+    if not hasSix then
+        dieToKeep == 6
+
+    else if not hasFive then
+        dieToKeep == 5
+
+    else if not hasFour then
+        dieToKeep == 4
+
+    else
+        True
