@@ -1,4 +1,4 @@
-module Dice exposing (Dice(..), diceValueGenerator)
+module Dice exposing (Dice, create, diceValueGenerator, keepDie, roll, sort)
 
 import List.Extra
 import Random
@@ -29,32 +29,32 @@ type Dice
     | RolledThrice (List ( Int, Bool )) -- <- The results of the third throw. Could have length 1 to 5
 
 
-diceValueGenerator : Random.Generator (List Int)
-diceValueGenerator =
-    Random.list 5 (Random.int 1 6)
-
-
-applyDice : List Int -> List ( Int, Bool ) -> List ( Int, Bool )
-applyDice rolledNumbers =
-    List.indexedMap
-        (\index ( value, keep ) ->
-            case List.Extra.getAt index rolledNumbers of
-                Just newValue ->
-                    if keep then
-                        ( value, keep )
-
-                    else
-                        ( newValue, keep )
-
-                Nothing ->
-                    ( value, keep )
-        )
+create : Dice
+create =
+    NeverRolled
 
 
 {-| If this function is called with a Dice that's already been RolledThrice it will just return the dice unchanged.
 -}
-rollDice : Dice -> Random.Generator Dice
-rollDice dice =
+roll : Dice -> Random.Generator Dice
+roll dice =
+    let
+        applyDice : List Int -> List ( Int, Bool ) -> List ( Int, Bool )
+        applyDice rolledNumbers =
+            List.indexedMap
+                (\index ( value, keep ) ->
+                    case List.Extra.getAt index rolledNumbers of
+                        Just newValue ->
+                            if keep then
+                                ( value, keep )
+
+                            else
+                                ( newValue, keep )
+
+                        Nothing ->
+                            ( value, keep )
+                )
+    in
     case dice of
         NeverRolled ->
             Random.map (\rolledNumbers -> RolledOnce (List.map (\number -> ( number, False )) rolledNumbers)) diceValueGenerator
@@ -67,22 +67,6 @@ rollDice dice =
 
         RolledThrice _ ->
             Random.constant dice
-
-
-mapDieValues : (List ( Int, Bool ) -> List ( Int, Bool )) -> Dice -> Dice
-mapDieValues fn dice =
-    case dice of
-        NeverRolled ->
-            NeverRolled
-
-        RolledOnce values ->
-            RolledOnce (fn values)
-
-        RolledTwice values ->
-            RolledTwice (fn values)
-
-        RolledThrice values ->
-            RolledThrice (fn values)
 
 
 sort : Dice -> Dice
@@ -105,3 +89,37 @@ sort =
     in
     -- This would be called after a player passes to put kept dice at the front of the list
     mapDieValues (List.sortWith compareDieValues)
+
+
+type KeepDieError
+    = KeepDieError
+
+
+keepDie : Int -> Dice -> Result KeepDieError ( Int, Dice )
+keepDie index dice =
+    Debug.todo "Implement"
+
+
+
+-- Internal
+
+
+diceValueGenerator : Random.Generator (List Int)
+diceValueGenerator =
+    Random.list 5 (Random.int 1 6)
+
+
+mapDieValues : (List ( Int, Bool ) -> List ( Int, Bool )) -> Dice -> Dice
+mapDieValues fn dice =
+    case dice of
+        NeverRolled ->
+            NeverRolled
+
+        RolledOnce values ->
+            RolledOnce (fn values)
+
+        RolledTwice values ->
+            RolledTwice (fn values)
+
+        RolledThrice values ->
+            RolledThrice (fn values)

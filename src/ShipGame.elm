@@ -67,56 +67,6 @@ type KeepDieError
     = KeepDieError
 
 
-setDiceValues : List ( Int, Bool ) -> Dice -> Dice
-setDiceValues newDiceValues dice =
-    case dice of
-        NeverRolled ->
-            dice
-
-        RolledOnce _ ->
-            RolledOnce newDiceValues
-
-        RolledTwice _ ->
-            RolledTwice newDiceValues
-
-        RolledThrice _ ->
-            RolledThrice newDiceValues
-
-
-keepDie : Int -> Dice -> Result KeepDieError ( Int, Dice )
-keepDie index dice =
-    let
-        maybeDiceList =
-            case dice of
-                NeverRolled ->
-                    Nothing
-
-                RolledOnce results ->
-                    Just results
-
-                RolledTwice results ->
-                    Just results
-
-                RolledThrice results ->
-                    Just results
-    in
-    case maybeDiceList of
-        Nothing ->
-            Err KeepDieError
-
-        Just diceList ->
-            case List.Extra.getAt index diceList of
-                Nothing ->
-                    Err KeepDieError
-
-                Just ( dieValue, _ ) ->
-                    let
-                        newDiceList =
-                            List.Extra.updateAt index (\( value, _ ) -> ( value, True )) diceList
-                    in
-                    Ok ( dieValue, setDiceValues newDiceList dice )
-
-
 updateDice : (Dice -> Dice) -> ShipGame -> ShipGame
 updateDice fn shipGame =
     { shipGame | dice = fn shipGame.dice }
@@ -184,61 +134,15 @@ shipGameUpdate msg shipGame =
     in
     case msg of
         Roll ->
-            case shipGame.dice of
-                RolledThrice _ ->
-                    -- Can't roll more than three times
-                    noOp
-
-                RolledTwice diceValues ->
-                    let
-                        numDiceToRoll =
-                            diceValues
-                                |> List.filter (\( _, keep ) -> not keep)
-                                |> List.length
-
-                        ( newDiceValues, newSeed ) =
-                            Random.step (Dice.diceValueGenerator numDiceToRoll) shipGame.seed
-
-                        newGame =
-                            shipGame
-                                |> updateCurrentShip (applyDiceToShip diceValues)
-                                |> setDice (RolledThrice newDiceValues)
-                                |> setSeed newSeed
-                    in
-                    GameContinues newGame
-
-                RolledOnce diceValues ->
-                    let
-                        numDiceToRoll =
-                            diceValues
-                                |> List.filter (\( _, keep ) -> not keep)
-                                |> List.length
-
-                        ( newDiceValues, newSeed ) =
-                            Random.step (Dice.diceValueGenerator numDiceToRoll) shipGame.seed
-
-                        newGame =
-                            shipGame
-                                |> updateCurrentShip (applyDiceToShip diceValues)
-                                |> setDice (RolledTwice newDiceValues)
-                                |> setSeed newSeed
-                    in
-                    GameContinues newGame
-
-                NeverRolled ->
-                    let
-                        numDiceToRoll =
-                            5
-
-                        ( newDiceValues, newSeed ) =
-                            Random.step (Dice.diceValueGenerator numDiceToRoll) shipGame.seed
-
-                        newShipGame =
-                            shipGame
-                                |> setDice (RolledOnce newDiceValues)
-                                |> setSeed newSeed
-                    in
-                    GameContinues newShipGame
+            let
+                ( newDice, newSeed ) =
+                    Random.step (Dice.roll shipGame.dice) shipGame.seed
+            in
+            GameContinues
+                { shipGame
+                    | dice = newDice
+                    , seed = newSeed
+                }
 
         Pass ->
             let
@@ -248,7 +152,7 @@ shipGameUpdate msg shipGame =
             case SelectionList.selectNext playersWithUpdatedSelectedPlayer of
                 Just newPlayers ->
                     -- The round is not over, select next player
-                    GameContinues { shipGame | dice = NeverRolled, players = newPlayers }
+                    GameContinues { shipGame | dice = Dice.create, players = newPlayers }
 
                 Nothing ->
                     -- All players have passed, round is over.
@@ -266,7 +170,7 @@ shipGameUpdate msg shipGame =
                             noOp
 
         Keep index ->
-            case keepDie index shipGame.dice of
+            case Dice.keepDie index shipGame.dice of
                 Err _ ->
                     noOp
 
@@ -296,7 +200,7 @@ create (List.Nonempty.Nonempty first rest) initialSeed =
             SelectionList.fromLists [] (createPlayer first) (List.map createPlayer rest)
 
         dice =
-            NeverRolled
+            Dice.create
     in
     ShipGame round players dice initialSeed
 
@@ -314,7 +218,7 @@ removePlayer playerId shipGame =
 
         newDice =
             if selectedPlayerWasRemoved then
-                NeverRolled
+                Dice.create
 
             else
                 dice
