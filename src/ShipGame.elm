@@ -170,7 +170,7 @@ shipGameUpdate msg shipGame =
                             noOp
 
         Keep index ->
-            case Dice.keep index shipGame.dice of
+            case Dice.keepDie index shipGame.dice of
                 Err _ ->
                     noOp
 
