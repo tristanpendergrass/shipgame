@@ -1,6 +1,9 @@
 module ShipGame exposing
     ( ShipGame
+    , ShipGameMsg(..)
+    , ShipGameUpdateResult(..)
     , create
+    , getCurrentPlayer
     , getPlayers
     , removePlayer
     )
@@ -12,6 +15,90 @@ import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
 import Random
 import SelectionList exposing (SelectionList)
+
+
+type alias ShipGame =
+    { round : Int
+    , players : SelectionList ShipGamePlayer
+    , dice : Dice
+    , seed : Random.Seed
+    }
+
+
+type ShipGameMsg
+    = Roll
+    | Keep Int -- <- the index of the die to keep. Illegal indexes will be ignored
+    | Pass
+
+
+type ShipGameUpdateResult
+    = GameContinues ShipGame
+    | GameOver (List { id : PlayerId, ships : List Ship })
+
+
+create : Nonempty PlayerId -> Random.Seed -> ShipGame
+create (List.Nonempty.Nonempty first rest) initialSeed =
+    let
+        round =
+            0
+
+        createPlayer : PlayerId -> ShipGamePlayer
+        createPlayer playerId =
+            { id = playerId
+            , ship = ShipWithNothing
+            , pastShips = []
+            }
+
+        players =
+            SelectionList.fromLists [] (createPlayer first) (List.map createPlayer rest)
+
+        dice =
+            Dice.create
+    in
+    ShipGame round players dice initialSeed
+
+
+getPlayers : ShipGame -> Nonempty PlayerId
+getPlayers { players } =
+    case SelectionList.toTuple players of
+        ( [], selected, last ) ->
+            List.Nonempty.Nonempty selected last
+                |> List.Nonempty.map .id
+
+        ( first :: rest, selected, last ) ->
+            List.Nonempty.Nonempty first (List.concat [ rest, selected :: last ])
+                |> List.Nonempty.map .id
+
+
+removePlayer : PlayerId -> ShipGame -> Maybe ShipGame
+removePlayer playerId shipGame =
+    let
+        { round, players, dice, seed } =
+            shipGame
+
+        selectedPlayerWasRemoved =
+            players
+                |> SelectionList.getSelected
+                |> (\player -> player.id == playerId)
+
+        newDice =
+            if selectedPlayerWasRemoved then
+                Dice.create
+
+            else
+                dice
+    in
+    SelectionList.filter (.id >> (/=) playerId) players
+        |> Maybe.map (\newPlayers -> ShipGame round newPlayers newDice seed)
+
+
+getCurrentPlayer : ShipGame -> PlayerId
+getCurrentPlayer =
+    .players >> SelectionList.getSelected >> .id
+
+
+
+-- Internal
 
 
 type Ship
@@ -39,32 +126,9 @@ type alias ShipGamePlayer =
     }
 
 
-type alias ShipGame =
-    { round : Int
-    , players : SelectionList ShipGamePlayer
-    , dice : Dice
-    , seed : Random.Seed
-    }
-
-
-type ShipGameMsg
-    = Roll
-    | Keep Int -- <- the index of the die to keep. Illegal indexes will be ignored
-    | Pass
-
-
-type ShipGameUpdateResult
-    = GameContinues ShipGame
-    | GameOver (List { id : PlayerId, ships : List Ship })
-
-
 setDice : Dice -> ShipGame -> ShipGame
 setDice newDice shipGame =
     { shipGame | dice = newDice }
-
-
-type KeepDieError
-    = KeepDieError
 
 
 updateDice : (Dice -> Dice) -> ShipGame -> ShipGame
@@ -181,59 +245,3 @@ shipGameUpdate msg shipGame =
                                 |> setDice newDice
                     in
                     Debug.todo "Implement"
-
-
-create : Nonempty PlayerId -> Random.Seed -> ShipGame
-create (List.Nonempty.Nonempty first rest) initialSeed =
-    let
-        round =
-            0
-
-        createPlayer : PlayerId -> ShipGamePlayer
-        createPlayer playerId =
-            { id = playerId
-            , ship = ShipWithNothing
-            , pastShips = []
-            }
-
-        players =
-            SelectionList.fromLists [] (createPlayer first) (List.map createPlayer rest)
-
-        dice =
-            Dice.create
-    in
-    ShipGame round players dice initialSeed
-
-
-removePlayer : PlayerId -> ShipGame -> Maybe ShipGame
-removePlayer playerId shipGame =
-    let
-        { round, players, dice, seed } =
-            shipGame
-
-        selectedPlayerWasRemoved =
-            players
-                |> SelectionList.getSelected
-                |> (\player -> player.id == playerId)
-
-        newDice =
-            if selectedPlayerWasRemoved then
-                Dice.create
-
-            else
-                dice
-    in
-    SelectionList.filter (.id >> (/=) playerId) players
-        |> Maybe.map (\newPlayers -> ShipGame round newPlayers newDice seed)
-
-
-getPlayers : ShipGame -> Nonempty PlayerId
-getPlayers { players } =
-    case SelectionList.toTuple players of
-        ( [], selected, last ) ->
-            List.Nonempty.Nonempty selected last
-                |> List.Nonempty.map .id
-
-        ( first :: rest, selected, last ) ->
-            List.Nonempty.Nonempty first (List.concat [ rest, selected :: last ])
-                |> List.Nonempty.map .id
