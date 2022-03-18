@@ -65,3 +65,8 @@ toList (SelectionList listBefore selected listAfter) =
 mapSelected : (a -> a) -> SelectionList a -> SelectionList a
 mapSelected fn (SelectionList listBefore selected listAfter) =
     fromLists listBefore (fn selected) listAfter
+
+
+map : (a -> b) -> SelectionList a -> SelectionList b
+map fn (SelectionList listBefore selected listAfter) =
+    fromLists (List.map fn listBefore) (fn selected) (List.map fn listAfter)

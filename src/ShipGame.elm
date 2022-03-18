@@ -1,9 +1,13 @@
 module ShipGame exposing
-    ( ShipGame
+    ( Ship(..)
+    , ShipGame
+    , ShipGameInfo
     , ShipGameMsg(..)
+    , ShipGamePlayer
     , ShipGameUpdateResult(..)
     , create
     , getCurrentPlayer
+    , getInfo
     , getPlayers
     , removePlayer
     )
@@ -25,6 +29,22 @@ type alias ShipGame =
     }
 
 
+type alias ShipGamePlayer =
+    { id : PlayerId
+    , ship : Ship
+    , pastShips : List Ship
+    }
+
+
+type Ship
+    = ShipWithNothing
+    | ShipWithOne
+    | ShipWithTwo
+    | ShipWithThree
+    | ShipWithFour Int
+    | ShipWithFive Int Int
+
+
 type ShipGameMsg
     = Roll
     | Keep Int -- <- the index of the die to keep. Illegal indexes will be ignored
@@ -34,6 +54,21 @@ type ShipGameMsg
 type ShipGameUpdateResult
     = GameContinues ShipGame
     | GameOver (List { id : PlayerId, ships : List Ship })
+
+
+type alias ShipGameInfo =
+    { round : Int
+    , players : SelectionList ShipGamePlayer
+    , dice : Dice
+    }
+
+
+getInfo : ShipGame -> ShipGameInfo
+getInfo shipGame =
+    { round = shipGame.round
+    , players = shipGame.players
+    , dice = shipGame.dice
+    }
 
 
 create : Nonempty PlayerId -> Random.Seed -> ShipGame
@@ -101,15 +136,6 @@ getCurrentPlayer =
 -- Internal
 
 
-type Ship
-    = ShipWithNothing
-    | ShipWithOne
-    | ShipWithTwo
-    | ShipWithThree
-    | ShipWithFour Int
-    | ShipWithFive Int Int
-
-
 type AddToShipError
     = AddToShipError
 
@@ -117,13 +143,6 @@ type AddToShipError
 addToShip : Int -> Ship -> Result AddToShipError Ship
 addToShip =
     Debug.todo "Implement"
-
-
-type alias ShipGamePlayer =
-    { id : PlayerId
-    , ship : Ship
-    , pastShips : List Ship
-    }
 
 
 setDice : Dice -> ShipGame -> ShipGame

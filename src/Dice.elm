@@ -1,4 +1,4 @@
-module Dice exposing (Dice, create, diceValueGenerator, keepDie, roll, sort)
+module Dice exposing (Dice(..), create, diceValueGenerator, keepDie, roll, sort)
 
 import List.Extra
 import Random
