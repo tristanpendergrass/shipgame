@@ -10,6 +10,7 @@ module ShipGame exposing
     , getInfo
     , getPlayers
     , removePlayer
+    , update
     )
 
 import Dice exposing (Dice(..))
@@ -46,7 +47,8 @@ type Ship
 
 
 type ShipGameMsg
-    = Roll
+    = NoOp
+    | Roll
     | Keep Int -- <- the index of the die to keep. Illegal indexes will be ignored
     | Pass
 
@@ -132,6 +134,66 @@ getCurrentPlayer =
     .players >> SelectionList.getSelected >> .id
 
 
+update : ShipGameMsg -> ShipGame -> ShipGameUpdateResult
+update msg shipGame =
+    let
+        noOp =
+            GameContinues shipGame
+    in
+    case msg of
+        NoOp ->
+            noOp
+
+        Roll ->
+            let
+                ( newDice, newSeed ) =
+                    Random.step (Dice.roll shipGame.dice) shipGame.seed
+            in
+            GameContinues
+                { shipGame
+                    | dice = newDice
+                    , seed = newSeed
+                }
+
+        Pass ->
+            let
+                playersWithUpdatedSelectedPlayer =
+                    SelectionList.mapSelected (\player -> { player | pastShips = player.ship :: player.pastShips, ship = ShipWithNothing }) shipGame.players
+            in
+            case SelectionList.selectNext playersWithUpdatedSelectedPlayer of
+                Just newPlayers ->
+                    -- The round is not over, select next player
+                    GameContinues { shipGame | dice = Dice.create, players = newPlayers }
+
+                Nothing ->
+                    -- All players have passed, round is over.
+                    case shipGame.round of
+                        2 ->
+                            endGame shipGame
+
+                        1 ->
+                            GameContinues shipGame
+
+                        0 ->
+                            GameContinues shipGame
+
+                        _ ->
+                            noOp
+
+        Keep index ->
+            case Dice.keepDie index shipGame.dice of
+                Err _ ->
+                    noOp
+
+                Ok ( dieValue, newDice ) ->
+                    let
+                        newGame =
+                            shipGame
+                                |> setDice newDice
+                    in
+                    Debug.todo "Implement"
+
+
 
 -- Internal
 
@@ -207,60 +269,3 @@ applyDiceToShip diceValues ship =
 addSelectedShipToPastShips : ShipGame -> ShipGame
 addSelectedShipToPastShips =
     updatePlayers (SelectionList.mapSelected (\player -> { player | pastShips = player.ship :: player.pastShips, ship = ShipWithNothing }))
-
-
-shipGameUpdate : ShipGameMsg -> ShipGame -> ShipGameUpdateResult
-shipGameUpdate msg shipGame =
-    let
-        noOp =
-            GameContinues shipGame
-    in
-    case msg of
-        Roll ->
-            let
-                ( newDice, newSeed ) =
-                    Random.step (Dice.roll shipGame.dice) shipGame.seed
-            in
-            GameContinues
-                { shipGame
-                    | dice = newDice
-                    , seed = newSeed
-                }
-
-        Pass ->
-            let
-                playersWithUpdatedSelectedPlayer =
-                    SelectionList.mapSelected (\player -> { player | pastShips = player.ship :: player.pastShips, ship = ShipWithNothing }) shipGame.players
-            in
-            case SelectionList.selectNext playersWithUpdatedSelectedPlayer of
-                Just newPlayers ->
-                    -- The round is not over, select next player
-                    GameContinues { shipGame | dice = Dice.create, players = newPlayers }
-
-                Nothing ->
-                    -- All players have passed, round is over.
-                    case shipGame.round of
-                        2 ->
-                            endGame shipGame
-
-                        1 ->
-                            GameContinues shipGame
-
-                        0 ->
-                            GameContinues shipGame
-
-                        _ ->
-                            noOp
-
-        Keep index ->
-            case Dice.keepDie index shipGame.dice of
-                Err _ ->
-                    noOp
-
-                Ok ( dieValue, newDice ) ->
-                    let
-                        newGame =
-                            shipGame
-                                |> setDice newDice
-                    in
-                    Debug.todo "Implement"
