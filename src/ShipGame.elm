@@ -18,7 +18,6 @@ import Dict exposing (Dict)
 import List.Extra
 import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
-import Random
 import SelectionList exposing (SelectionList)
 
 
@@ -26,7 +25,6 @@ type alias ShipGame =
     { round : Int
     , players : SelectionList ShipGamePlayer
     , dice : Dice
-    , seed : Random.Seed
     }
 
 
@@ -73,8 +71,8 @@ getInfo shipGame =
     }
 
 
-create : Nonempty PlayerId -> Random.Seed -> ShipGame
-create (List.Nonempty.Nonempty first rest) initialSeed =
+create : Nonempty PlayerId -> ShipGame
+create (List.Nonempty.Nonempty first rest) =
     let
         round =
             0
@@ -92,7 +90,7 @@ create (List.Nonempty.Nonempty first rest) initialSeed =
         dice =
             Dice.create
     in
-    ShipGame round players dice initialSeed
+    ShipGame round players dice
 
 
 getPlayers : ShipGame -> Nonempty PlayerId
@@ -110,7 +108,7 @@ getPlayers { players } =
 removePlayer : PlayerId -> ShipGame -> Maybe ShipGame
 removePlayer playerId shipGame =
     let
-        { round, players, dice, seed } =
+        { round, players, dice } =
             shipGame
 
         selectedPlayerWasRemoved =
@@ -126,7 +124,7 @@ removePlayer playerId shipGame =
                 dice
     in
     SelectionList.filter (.id >> (/=) playerId) players
-        |> Maybe.map (\newPlayers -> ShipGame round newPlayers newDice seed)
+        |> Maybe.map (\newPlayers -> ShipGame round newPlayers newDice)
 
 
 getCurrentPlayer : ShipGame -> PlayerId
@@ -210,11 +208,6 @@ setDice newDice shipGame =
 updateDice : (Dice -> Dice) -> ShipGame -> ShipGame
 updateDice fn shipGame =
     { shipGame | dice = fn shipGame.dice }
-
-
-setSeed : Random.Seed -> ShipGame -> ShipGame
-setSeed newSeed shipGame =
-    { shipGame | seed = newSeed }
 
 
 updatePlayers : (SelectionList ShipGamePlayer -> SelectionList ShipGamePlayer) -> ShipGame -> ShipGame

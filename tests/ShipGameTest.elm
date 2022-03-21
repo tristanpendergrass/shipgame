@@ -4,7 +4,6 @@ import Dice exposing (Dice(..))
 import Expect exposing (Expectation)
 import List.Nonempty exposing (Nonempty(..))
 import Player exposing (PlayerId)
-import Random
 import SelectionList exposing (SelectionList)
 import ShipGame exposing (Ship(..), ShipGame, ShipGameInfo, ShipGamePlayer, ShipGameUpdateResult)
 import Test exposing (Test, describe, test)
@@ -15,14 +14,9 @@ playerIds =
     Nonempty 1 [ 2, 3, 4 ]
 
 
-defaultSeed : Random.Seed
-defaultSeed =
-    Random.initialSeed 0
-
-
 defaultShipGame : ShipGame
 defaultShipGame =
-    ShipGame.create playerIds defaultSeed
+    ShipGame.create playerIds
 
 
 expectShipGameInfo : ShipGameInfo -> ShipGame.ShipGameUpdateResult -> Expectation

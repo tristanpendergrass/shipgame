@@ -85,7 +85,7 @@ startGame lobby =
         NotStarted (firstPlayer :: rest) ->
             let
                 game =
-                    ShipGame.create (List.Nonempty.Nonempty firstPlayer rest) lobby.seed
+                    ShipGame.create (List.Nonempty.Nonempty firstPlayer rest)
             in
             Just { lobby | gameWrapper = InProgress game }
 
