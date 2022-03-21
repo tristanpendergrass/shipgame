@@ -1,4 +1,4 @@
-module Dice exposing (Dice(..), create, diceValueGenerator, keepDie, roll, sort)
+module Dice exposing (Dice(..), RolledNumbers, create, diceValueGenerator, keepDie, roll, sort)
 
 import List.Extra
 import Random
@@ -29,6 +29,15 @@ type Dice
     | RolledThrice (List ( Int, Bool )) -- <- The results of the third throw. Could have length 1 to 5
 
 
+type alias RolledNumbers =
+    { first : Int
+    , second : Int
+    , third : Int
+    , fourth : Int
+    , fifth : Int
+    }
+
+
 create : Dice
 create =
     NeverRolled
@@ -36,14 +45,14 @@ create =
 
 {-| If this function is called with a Dice that's already been RolledThrice it will just return the dice unchanged.
 -}
-roll : Dice -> Random.Generator Dice
-roll dice =
+roll : Dice -> RolledNumbers -> Dice
+roll dice { first, second, third, fourth, fifth } =
     let
         applyDice : List Int -> List ( Int, Bool ) -> List ( Int, Bool )
-        applyDice rolledNumbers =
+        applyDice numbers =
             List.indexedMap
                 (\index ( value, keep ) ->
-                    case List.Extra.getAt index rolledNumbers of
+                    case List.Extra.getAt index numbers of
                         Just newValue ->
                             if keep then
                                 ( value, keep )
@@ -54,19 +63,22 @@ roll dice =
                         Nothing ->
                             ( value, keep )
                 )
+
+        rolledNumbers =
+            [ first, second, third, fourth, fifth ]
     in
     case dice of
         NeverRolled ->
-            Random.map (\rolledNumbers -> RolledOnce (List.map (\number -> ( number, False )) rolledNumbers)) diceValueGenerator
+            RolledOnce (List.map (\number -> ( number, False )) rolledNumbers)
 
         RolledOnce values ->
-            Random.map (\rolledNumbers -> RolledTwice (applyDice rolledNumbers values)) diceValueGenerator
+            RolledTwice (applyDice rolledNumbers values)
 
         RolledTwice values ->
-            Random.map (\rolledNumbers -> RolledThrice (applyDice rolledNumbers values)) diceValueGenerator
+            RolledThrice (applyDice rolledNumbers values)
 
         RolledThrice _ ->
-            Random.constant dice
+            dice
 
 
 sort : Dice -> Dice
@@ -97,7 +109,7 @@ type KeepDieError
     | KeepDieOutOfOrder -- When user tries to keep e.g. a 5 before a 6 has been kept
 
 
-keepDie : Int -> Dice -> Result KeepDieError ( Int, Dice )
+keepDie : Int -> Dice -> Result KeepDieError Dice
 keepDie index dice =
     let
         maybeValues =
@@ -131,7 +143,7 @@ keepDie index dice =
                         Err KeepDieOutOfOrder
 
                     else
-                        Ok ( value, mapDieValues (\_ -> List.Extra.setAt index ( value, True ) values) dice )
+                        Ok (mapDieValues (\_ -> List.Extra.setAt index ( value, True ) values) dice)
 
 
 

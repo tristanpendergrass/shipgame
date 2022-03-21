@@ -48,7 +48,7 @@ type Ship
 
 type ShipGameMsg
     = NoOp
-    | Roll
+    | Roll Dice.RolledNumbers
     | Keep Int -- <- the index of the die to keep. Illegal indexes will be ignored
     | Pass
 
@@ -144,15 +144,10 @@ update msg shipGame =
         NoOp ->
             noOp
 
-        Roll ->
-            let
-                ( newDice, newSeed ) =
-                    Random.step (Dice.roll shipGame.dice) shipGame.seed
-            in
+        Roll rolledNumbers ->
             GameContinues
                 { shipGame
-                    | dice = newDice
-                    , seed = newSeed
+                    | dice = Dice.roll shipGame.dice rolledNumbers
                 }
 
         Pass ->
@@ -185,13 +180,13 @@ update msg shipGame =
                 Err _ ->
                     noOp
 
-                Ok ( dieValue, newDice ) ->
+                Ok newDice ->
                     let
                         newGame =
                             shipGame
                                 |> setDice newDice
                     in
-                    Debug.todo "Implement"
+                    GameContinues newGame
 
 
 

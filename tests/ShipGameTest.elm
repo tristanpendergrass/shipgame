@@ -5,8 +5,8 @@ import Expect exposing (Expectation)
 import List.Nonempty exposing (Nonempty(..))
 import Player exposing (PlayerId)
 import Random
-import SelectionList
-import ShipGame exposing (Ship(..), ShipGame, ShipGameInfo, ShipGameUpdateResult)
+import SelectionList exposing (SelectionList)
+import ShipGame exposing (Ship(..), ShipGame, ShipGameInfo, ShipGamePlayer, ShipGameUpdateResult)
 import Test exposing (Test, describe, test)
 
 
@@ -54,6 +54,22 @@ batchShipGameUpdates msgs originalShipGame =
         msgs
 
 
+defaultPlayers : SelectionList ShipGamePlayer
+defaultPlayers =
+    SelectionList.fromLists [] 1 [ 2, 3, 4 ]
+        |> SelectionList.map (\playerId -> { id = playerId, ship = ShipWithNothing, pastShips = [] })
+
+
+defaultNumbers : Dice.RolledNumbers
+defaultNumbers =
+    { first = 1, second = 2, third = 4, fourth = 5, fifth = 6 }
+
+
+defaultNumbers2 : Dice.RolledNumbers
+defaultNumbers2 =
+    { first = 3, second = 4, third = 4, fourth = 5, fifth = 6 }
+
+
 suite : Test
 suite =
     describe "ShipGame module"
@@ -63,42 +79,43 @@ suite =
                     |> batchShipGameUpdates []
                     |> expectShipGameInfo
                         { round = 0
-                        , players =
-                            SelectionList.fromLists [] 1 [ 2, 3, 4 ]
-                                |> SelectionList.map (\playerId -> { id = playerId, ship = ShipWithNothing, pastShips = [] })
+                        , players = defaultPlayers
                         , dice = NeverRolled
                         }
         , test "after rolling once" <|
             \_ ->
                 defaultShipGame
-                    |> batchShipGameUpdates [ ShipGame.Roll ]
+                    |> batchShipGameUpdates [ ShipGame.Roll defaultNumbers ]
                     |> expectShipGameInfo
                         { round = 0
-                        , players =
-                            SelectionList.fromLists [] 1 [ 2, 3, 4 ]
-                                |> SelectionList.map (\playerId -> { id = playerId, ship = ShipWithNothing, pastShips = [] })
-                        , dice = RolledOnce [ ( 4, False ), ( 4, False ), ( 3, False ), ( 3, False ), ( 2, False ) ]
+                        , players = defaultPlayers
+                        , dice = RolledOnce [ ( 1, False ), ( 2, False ), ( 4, False ), ( 5, False ), ( 6, False ) ]
                         }
         , test "after rolling twice" <|
             \_ ->
                 defaultShipGame
-                    |> batchShipGameUpdates [ ShipGame.Roll, ShipGame.Roll ]
+                    |> batchShipGameUpdates [ ShipGame.Roll defaultNumbers, ShipGame.Roll defaultNumbers2 ]
                     |> expectShipGameInfo
                         { round = 0
-                        , players =
-                            SelectionList.fromLists [] 1 [ 2, 3, 4 ]
-                                |> SelectionList.map (\playerId -> { id = playerId, ship = ShipWithNothing, pastShips = [] })
-                        , dice = RolledTwice [ ( 2, False ), ( 3, False ), ( 6, False ), ( 6, False ), ( 1, False ) ]
+                        , players = defaultPlayers
+                        , dice = RolledTwice [ ( 3, False ), ( 4, False ), ( 4, False ), ( 5, False ), ( 6, False ) ]
                         }
         , test "after keeping a die" <|
             \_ ->
                 defaultShipGame
-                    |> batchShipGameUpdates [ ShipGame.Roll, ShipGame.Roll, ShipGame.Keep 2 ]
+                    |> batchShipGameUpdates [ ShipGame.Roll defaultNumbers, ShipGame.Keep 4 ]
                     |> expectShipGameInfo
                         { round = 0
-                        , players =
-                            SelectionList.fromLists [] 1 [ 2, 3, 4 ]
-                                |> SelectionList.map (\playerId -> { id = playerId, ship = ShipWithNothing, pastShips = [] })
-                        , dice = RolledTwice [ ( 2, False ), ( 3, False ), ( 6, True ), ( 6, False ), ( 1, False ) ]
+                        , players = defaultPlayers
+                        , dice = RolledOnce [ ( 1, False ), ( 2, False ), ( 4, False ), ( 5, False ), ( 6, True ) ]
+                        }
+        , test "after illegally trying to keep a die" <|
+            \_ ->
+                defaultShipGame
+                    |> batchShipGameUpdates [ ShipGame.Roll defaultNumbers, ShipGame.Keep 1 ]
+                    |> expectShipGameInfo
+                        { round = 0
+                        , players = defaultPlayers
+                        , dice = RolledOnce [ ( 1, False ), ( 2, False ), ( 4, False ), ( 5, False ), ( 6, False ) ]
                         }
         ]
