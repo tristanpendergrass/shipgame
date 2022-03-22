@@ -49,6 +49,7 @@ type ShipGameMsg
     | Roll Dice.RolledNumbers
     | Keep Int -- <- the index of the die to keep. Illegal indexes will be ignored
     | Pass
+    | LeaveGame PlayerId
 
 
 type ShipGameUpdateResult
@@ -185,6 +186,14 @@ update msg shipGame =
                                 |> setDice newDice
                     in
                     GameContinues newGame
+
+        LeaveGame playerId ->
+            case SelectionList.filter (.id >> (/=) playerId) shipGame.players of
+                Nothing ->
+                    GameOver []
+
+                Just newPlayers ->
+                    GameContinues { shipGame | players = newPlayers }
 
 
 

@@ -4,19 +4,14 @@ import Dice exposing (Dice(..))
 import Expect exposing (Expectation)
 import List.Nonempty exposing (Nonempty(..))
 import Player exposing (PlayerId)
-import SelectionList exposing (SelectionList)
+import SelectionList exposing (SelectionList(..))
 import ShipGame exposing (Ship(..), ShipGame, ShipGameInfo, ShipGamePlayer, ShipGameUpdateResult)
 import Test exposing (Test, describe, test)
 
 
-playerIds : Nonempty PlayerId
-playerIds =
-    Nonempty 1 [ 2, 3, 4 ]
-
-
 defaultShipGame : ShipGame
 defaultShipGame =
-    ShipGame.create playerIds
+    ShipGame.create (Nonempty 1 [ 2, 3, 4 ])
 
 
 expectShipGameInfo : ShipGameInfo -> ShipGame.ShipGameUpdateResult -> Expectation
@@ -48,10 +43,15 @@ batchShipGameUpdates msgs originalShipGame =
         msgs
 
 
+createPlayer : PlayerId -> ShipGamePlayer
+createPlayer playerId =
+    { id = playerId, ship = ShipWithNothing, pastShips = [] }
+
+
 defaultPlayers : SelectionList ShipGamePlayer
 defaultPlayers =
     SelectionList.fromLists [] 1 [ 2, 3, 4 ]
-        |> SelectionList.map (\playerId -> { id = playerId, ship = ShipWithNothing, pastShips = [] })
+        |> SelectionList.map createPlayer
 
 
 defaultNumbers : Dice.RolledNumbers
@@ -111,5 +111,27 @@ suite =
                         { round = 0
                         , players = defaultPlayers
                         , dice = RolledOnce [ ( 1, False ), ( 2, False ), ( 4, False ), ( 5, False ), ( 6, False ) ]
+                        }
+        , test "after player leaves the game" <|
+            \_ ->
+                defaultShipGame
+                    |> batchShipGameUpdates [ ShipGame.LeaveGame 2 ]
+                    |> expectShipGameInfo
+                        { round = 0
+                        , players =
+                            SelectionList.fromLists [] 1 [ 3, 4 ]
+                                |> SelectionList.map createPlayer
+                        , dice = NeverRolled
+                        }
+        , test "after current player leaves the game" <|
+            \_ ->
+                defaultShipGame
+                    |> batchShipGameUpdates [ ShipGame.LeaveGame 1 ]
+                    |> expectShipGameInfo
+                        { round = 0
+                        , players =
+                            SelectionList.fromLists [] 2 [ 3, 4 ]
+                                |> SelectionList.map createPlayer
+                        , dice = NeverRolled
                         }
         ]
