@@ -1,4 +1,4 @@
-module Dice exposing (Dice(..), RolledNumbers, create, diceValueGenerator, keepDie, roll, sort)
+module Dice exposing (Dice(..), RolledNumbers, create, diceValueGenerator, getRolledNumbers, keepDie, roll, sort)
 
 import List.Extra
 import Random
@@ -144,6 +144,28 @@ keepDie index dice =
 
                     else
                         Ok (mapDieValues (\_ -> List.Extra.setAt index ( value, True ) values) dice)
+
+
+getRolledNumbers : Dice -> List Int
+getRolledNumbers dice =
+    case dice of
+        NeverRolled ->
+            []
+
+        RolledOnce dieValues ->
+            dieValues
+                |> List.filter (\( _, keep ) -> keep)
+                |> List.map Tuple.first
+
+        RolledTwice dieValues ->
+            dieValues
+                |> List.filter (\( _, keep ) -> keep)
+                |> List.map Tuple.first
+
+        RolledThrice dieValues ->
+            dieValues
+                |> List.filter (\( _, keep ) -> keep)
+                |> List.map Tuple.first
 
 
 

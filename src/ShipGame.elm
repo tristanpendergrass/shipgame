@@ -30,7 +30,6 @@ type alias ShipGame =
 
 type alias ShipGamePlayer =
     { id : PlayerId
-    , ship : Ship
     , pastShips : List Ship
     }
 
@@ -81,7 +80,6 @@ create (List.Nonempty.Nonempty first rest) =
         createPlayer : PlayerId -> ShipGamePlayer
         createPlayer playerId =
             { id = playerId
-            , ship = ShipWithNothing
             , pastShips = []
             }
 
@@ -151,8 +149,15 @@ update msg shipGame =
 
         Pass ->
             let
+                playersWithUpdatedSelectedPlayer : SelectionList ShipGamePlayer
                 playersWithUpdatedSelectedPlayer =
-                    SelectionList.mapSelected (\player -> { player | pastShips = player.ship :: player.pastShips, ship = ShipWithNothing }) shipGame.players
+                    SelectionList.mapSelected
+                        (\player ->
+                            { player
+                                | pastShips = shipFromRolledNumbers (Dice.getRolledNumbers shipGame.dice) :: player.pastShips
+                            }
+                        )
+                        shipGame.players
             in
             case SelectionList.selectNext playersWithUpdatedSelectedPlayer of
                 Just newPlayers ->
@@ -188,45 +193,34 @@ update msg shipGame =
                     GameContinues newGame
 
         LeaveGame playerId ->
+            let
+                selectedPlayerIsLeaving =
+                    (SelectionList.getSelected shipGame.players).id == playerId
+            in
             case SelectionList.filter (.id >> (/=) playerId) shipGame.players of
                 Nothing ->
                     GameOver []
 
                 Just newPlayers ->
-                    GameContinues { shipGame | players = newPlayers }
+                    GameContinues
+                        { shipGame
+                            | players = newPlayers
+                            , dice =
+                                if selectedPlayerIsLeaving then
+                                    Dice.create
+
+                                else
+                                    shipGame.dice
+                        }
 
 
 
 -- Internal
 
 
-type AddToShipError
-    = AddToShipError
-
-
-addToShip : Int -> Ship -> Result AddToShipError Ship
-addToShip =
-    Debug.todo "Implement"
-
-
 setDice : Dice -> ShipGame -> ShipGame
 setDice newDice shipGame =
     { shipGame | dice = newDice }
-
-
-updateDice : (Dice -> Dice) -> ShipGame -> ShipGame
-updateDice fn shipGame =
-    { shipGame | dice = fn shipGame.dice }
-
-
-updatePlayers : (SelectionList ShipGamePlayer -> SelectionList ShipGamePlayer) -> ShipGame -> ShipGame
-updatePlayers fn shipGame =
-    { shipGame | players = fn shipGame.players }
-
-
-updateCurrentShip : (Ship -> Ship) -> ShipGame -> ShipGame
-updateCurrentShip fn =
-    updatePlayers (SelectionList.mapSelected (\player -> { player | ship = fn player.ship }))
 
 
 endGame : ShipGame -> ShipGameUpdateResult
@@ -236,7 +230,7 @@ endGame shipGame =
             SelectionList.toList shipGame.players
 
         convertPlayer player =
-            { id = player.id, ships = player.ship :: player.pastShips }
+            { id = player.id, ships = player.pastShips }
 
         gameOverPlayerData =
             List.map convertPlayer players
@@ -244,25 +238,42 @@ endGame shipGame =
     GameOver gameOverPlayerData
 
 
-applyDiceToShip : List ( Int, Bool ) -> Ship -> Ship
-applyDiceToShip diceValues ship =
-    diceValues
-        |> List.foldl
-            (\( diceValue, keep ) selectedShipResult ->
-                Result.andThen
-                    (\selectedShip ->
-                        if keep then
-                            addToShip diceValue selectedShip
+shipFromRolledNumbers : List Int -> Ship
+shipFromRolledNumbers rolledNumbers =
+    if not (List.member 6 rolledNumbers) then
+        ShipWithNothing
 
-                        else
-                            Ok selectedShip
-                    )
-                    selectedShipResult
-            )
-            (Ok ship)
-        |> Result.withDefault ship
+    else
+        let
+            rolledNumbers2 =
+                List.Extra.remove 6 rolledNumbers
+        in
+        if not (List.member 5 rolledNumbers2) then
+            ShipWithOne
 
+        else
+            let
+                rolledNumbers3 =
+                    List.Extra.remove 5 rolledNumbers2
+            in
+            if not (List.member 4 rolledNumbers3) then
+                ShipWithTwo
 
-addSelectedShipToPastShips : ShipGame -> ShipGame
-addSelectedShipToPastShips =
-    updatePlayers (SelectionList.mapSelected (\player -> { player | pastShips = player.ship :: player.pastShips, ship = ShipWithNothing }))
+            else
+                let
+                    rolledNumbers4 =
+                        List.Extra.remove 4 rolledNumbers3
+                in
+                case rolledNumbers4 of
+                    [] ->
+                        ShipWithThree
+
+                    [ first ] ->
+                        ShipWithFour first
+
+                    [ first, second ] ->
+                        ShipWithFive first second
+
+                    _ ->
+                        -- Should never happen
+                        ShipWithNothing

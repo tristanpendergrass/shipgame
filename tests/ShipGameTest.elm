@@ -45,7 +45,7 @@ batchShipGameUpdates msgs originalShipGame =
 
 createPlayer : PlayerId -> ShipGamePlayer
 createPlayer playerId =
-    { id = playerId, ship = ShipWithNothing, pastShips = [] }
+    { id = playerId, pastShips = [] }
 
 
 defaultPlayers : SelectionList ShipGamePlayer
@@ -132,6 +132,48 @@ suite =
                         , players =
                             SelectionList.fromLists [] 2 [ 3, 4 ]
                                 |> SelectionList.map createPlayer
+                        , dice = NeverRolled
+                        }
+        , test "after playing a whole turn with a complete ship" <|
+            \_ ->
+                defaultShipGame
+                    |> batchShipGameUpdates
+                        [ ShipGame.Roll defaultNumbers
+                        , ShipGame.Keep 4 -- keep the 6
+                        , ShipGame.Keep 3 -- keep the 5
+                        , ShipGame.Keep 2 -- keep the 4
+                        , ShipGame.Roll { first = 3, second = 4, third = 4, fourth = 5, fifth = 6 }
+                        , ShipGame.Keep 1 -- keep the 4
+                        , ShipGame.Roll { first = 5, second = 4, third = 4, fourth = 5, fifth = 6 }
+                        , ShipGame.Keep 0 -- keep the 5
+                        , ShipGame.Pass
+                        ]
+                    |> expectShipGameInfo
+                        { round = 0
+                        , players =
+                            let
+                                player1 =
+                                    { id = 1
+                                    , pastShips = [ ShipWithFive 4 5 ]
+                                    }
+                            in
+                            SelectionList.fromLists [ player1 ] (createPlayer 2) [ createPlayer 3, createPlayer 4 ]
+                        , dice = NeverRolled
+                        }
+        , test "dice reset after active player leaves" <|
+            \_ ->
+                defaultShipGame
+                    |> batchShipGameUpdates
+                        [ ShipGame.Roll defaultNumbers
+                        , ShipGame.Keep 4 -- keep the 6
+                        , ShipGame.Keep 3 -- keep the 5
+                        , ShipGame.Keep 2 -- keep the 4
+                        , ShipGame.LeaveGame 1 -- player 1 leaves
+                        ]
+                    |> expectShipGameInfo
+                        { round = 0
+                        , players =
+                            SelectionList.fromLists [] (createPlayer 2) [ createPlayer 3, createPlayer 4 ]
                         , dice = NeverRolled
                         }
         ]
