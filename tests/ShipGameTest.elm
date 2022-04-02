@@ -54,14 +54,48 @@ defaultPlayers =
         |> SelectionList.map createPlayer
 
 
-defaultNumbers : Dice.RolledNumbers
-defaultNumbers =
+rolledNumbersLow : Dice.RolledNumbers
+rolledNumbersLow =
     { first = 1, second = 2, third = 4, fourth = 5, fifth = 6 }
 
 
-defaultNumbers2 : Dice.RolledNumbers
-defaultNumbers2 =
+rolledNumbersHigh : Dice.RolledNumbers
+rolledNumbersHigh =
     { first = 3, second = 4, third = 4, fourth = 5, fifth = 6 }
+
+
+playLowScoringTurn : List ShipGame.ShipGameMsg
+playLowScoringTurn =
+    [ ShipGame.Roll rolledNumbersLow
+    , ShipGame.Keep 4 -- keep the 6
+    , ShipGame.Keep 3 -- keep the 5
+    , ShipGame.Keep 2 -- keep the 4
+    , ShipGame.Keep 1 -- keep the 2
+    , ShipGame.Keep 0 -- keep the 1
+    , ShipGame.Pass
+    ]
+
+
+playHighScoringTurn : List ShipGame.ShipGameMsg
+playHighScoringTurn =
+    [ ShipGame.Roll rolledNumbersHigh
+    , ShipGame.Keep 4 -- keep the 6
+    , ShipGame.Keep 3 -- keep the 5
+    , ShipGame.Keep 2 -- keep the 4
+    , ShipGame.Keep 1 -- keep the 4
+    , ShipGame.Keep 0 -- keep the 3
+    , ShipGame.Pass
+    ]
+
+
+lowScoringShip : Ship
+lowScoringShip =
+    ShipWithFive 1 2
+
+
+highScoringShip : Ship
+highScoringShip =
+    ShipWithFive 3 4
 
 
 suite : Test
@@ -79,7 +113,7 @@ suite =
         , test "after rolling once" <|
             \_ ->
                 defaultShipGame
-                    |> batchShipGameUpdates [ ShipGame.Roll defaultNumbers ]
+                    |> batchShipGameUpdates [ ShipGame.Roll rolledNumbersLow ]
                     |> expectShipGameInfo
                         { round = 0
                         , players = defaultPlayers
@@ -88,7 +122,7 @@ suite =
         , test "after rolling twice" <|
             \_ ->
                 defaultShipGame
-                    |> batchShipGameUpdates [ ShipGame.Roll defaultNumbers, ShipGame.Roll defaultNumbers2 ]
+                    |> batchShipGameUpdates [ ShipGame.Roll rolledNumbersLow, ShipGame.Roll rolledNumbersHigh ]
                     |> expectShipGameInfo
                         { round = 0
                         , players = defaultPlayers
@@ -97,7 +131,7 @@ suite =
         , test "after keeping a die" <|
             \_ ->
                 defaultShipGame
-                    |> batchShipGameUpdates [ ShipGame.Roll defaultNumbers, ShipGame.Keep 4 ]
+                    |> batchShipGameUpdates [ ShipGame.Roll rolledNumbersLow, ShipGame.Keep 4 ]
                     |> expectShipGameInfo
                         { round = 0
                         , players = defaultPlayers
@@ -106,7 +140,7 @@ suite =
         , test "after illegally trying to keep a die" <|
             \_ ->
                 defaultShipGame
-                    |> batchShipGameUpdates [ ShipGame.Roll defaultNumbers, ShipGame.Keep 1 ]
+                    |> batchShipGameUpdates [ ShipGame.Roll rolledNumbersLow, ShipGame.Keep 1 ]
                     |> expectShipGameInfo
                         { round = 0
                         , players = defaultPlayers
@@ -138,7 +172,7 @@ suite =
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates
-                        [ ShipGame.Roll defaultNumbers
+                        [ ShipGame.Roll rolledNumbersLow
                         , ShipGame.Keep 4 -- keep the 6
                         , ShipGame.Keep 3 -- keep the 5
                         , ShipGame.Keep 2 -- keep the 4
@@ -164,7 +198,7 @@ suite =
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates
-                        [ ShipGame.Roll defaultNumbers
+                        [ ShipGame.Roll rolledNumbersLow
                         , ShipGame.Keep 4 -- keep the 6
                         , ShipGame.Keep 3 -- keep the 5
                         , ShipGame.Keep 2 -- keep the 4
@@ -174,6 +208,29 @@ suite =
                         { round = 0
                         , players =
                             SelectionList.fromLists [] (createPlayer 2) [ createPlayer 3, createPlayer 4 ]
+                        , dice = NeverRolled
+                        }
+        , test "after playing a whole round" <|
+            \_ ->
+                defaultShipGame
+                    |> batchShipGameUpdates
+                        (List.concat
+                            [ playLowScoringTurn
+                            , playLowScoringTurn
+                            , playLowScoringTurn
+                            , playHighScoringTurn
+                            ]
+                        )
+                    |> expectShipGameInfo
+                        { round = 1
+                        , players =
+                            SelectionList.fromLists
+                                []
+                                { id = 1, pastShips = [ lowScoringShip ] }
+                                [ { id = 2, pastShips = [ lowScoringShip ] }
+                                , { id = 3, pastShips = [ lowScoringShip ] }
+                                , { id = 4, pastShips = [ highScoringShip ] }
+                                ]
                         , dice = NeverRolled
                         }
         ]

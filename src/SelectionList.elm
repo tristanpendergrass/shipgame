@@ -70,3 +70,13 @@ mapSelected fn (SelectionList listBefore selected listAfter) =
 map : (a -> b) -> SelectionList a -> SelectionList b
 map fn (SelectionList listBefore selected listAfter) =
     fromLists (List.map fn listBefore) (fn selected) (List.map fn listAfter)
+
+
+selectFirst : SelectionList a -> SelectionList a
+selectFirst selectionList =
+    case selectionList of
+        SelectionList (newSelected :: listBefore) oldSelected listAfter ->
+            fromLists [] newSelected (List.concat [ listBefore, [ oldSelected ], listAfter ])
+
+        SelectionList [] _ _ ->
+            selectionList

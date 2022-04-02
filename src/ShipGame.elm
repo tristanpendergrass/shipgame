@@ -165,16 +165,20 @@ update msg shipGame =
                     GameContinues { shipGame | dice = Dice.create, players = newPlayers }
 
                 Nothing ->
+                    let
+                        newPlayers =
+                            SelectionList.selectFirst playersWithUpdatedSelectedPlayer
+                    in
                     -- All players have passed, round is over.
                     case shipGame.round of
                         2 ->
                             endGame shipGame
 
                         1 ->
-                            GameContinues shipGame
+                            GameContinues { shipGame | dice = Dice.create, players = newPlayers, round = 2 }
 
                         0 ->
-                            GameContinues shipGame
+                            GameContinues { shipGame | dice = Dice.create, players = newPlayers, round = 1 }
 
                         _ ->
                             noOp
