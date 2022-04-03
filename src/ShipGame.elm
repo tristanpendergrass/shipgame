@@ -1,5 +1,6 @@
 module ShipGame exposing
-    ( Ship(..)
+    ( GameSummary
+    , Ship(..)
     , ShipGame
     , ShipGameInfo
     , ShipGameMsg(..)
@@ -51,9 +52,13 @@ type ShipGameMsg
     | LeaveGame PlayerId
 
 
+type alias GameSummary =
+    List ShipGamePlayer
+
+
 type ShipGameUpdateResult
     = GameContinues ShipGame
-    | GameOver (List { id : PlayerId, ships : List Ship })
+    | GameOver GameSummary
 
 
 type alias ShipGameInfo =
@@ -172,7 +177,7 @@ update msg shipGame =
                     -- All players have passed, round is over.
                     case shipGame.round of
                         2 ->
-                            endGame shipGame
+                            endGame { shipGame | players = newPlayers }
 
                         1 ->
                             GameContinues { shipGame | dice = Dice.create, players = newPlayers, round = 2 }
@@ -234,7 +239,7 @@ endGame shipGame =
             SelectionList.toList shipGame.players
 
         convertPlayer player =
-            { id = player.id, ships = player.pastShips }
+            { id = player.id, pastShips = player.pastShips }
 
         gameOverPlayerData =
             List.map convertPlayer players

@@ -5,7 +5,7 @@ import Expect exposing (Expectation)
 import List.Nonempty exposing (Nonempty(..))
 import Player exposing (PlayerId)
 import SelectionList exposing (SelectionList(..))
-import ShipGame exposing (Ship(..), ShipGame, ShipGameInfo, ShipGamePlayer, ShipGameUpdateResult)
+import ShipGame exposing (..)
 import Test exposing (Test, describe, test)
 
 
@@ -14,7 +14,7 @@ defaultShipGame =
     ShipGame.create (Nonempty 1 [ 2, 3, 4 ])
 
 
-expectShipGameInfo : ShipGameInfo -> ShipGame.ShipGameUpdateResult -> Expectation
+expectShipGameInfo : ShipGameInfo -> ShipGameUpdateResult -> Expectation
 expectShipGameInfo expectedShipGameInfo shipGameUpdateResult =
     case shipGameUpdateResult of
         ShipGame.GameContinues shipGame ->
@@ -28,7 +28,17 @@ expectShipGameInfo expectedShipGameInfo shipGameUpdateResult =
             Expect.fail "Game should not be over"
 
 
-batchShipGameUpdates : List ShipGame.ShipGameMsg -> ShipGame -> ShipGameUpdateResult
+expectGameOver : GameSummary -> ShipGameUpdateResult -> Expectation
+expectGameOver expectedGameSummary shipGameUpdateResult =
+    case shipGameUpdateResult of
+        GameContinues _ ->
+            Expect.fail "Game should be over"
+
+        GameOver gameSummary ->
+            Expect.equal expectedGameSummary gameSummary
+
+
+batchShipGameUpdates : List ShipGameMsg -> ShipGame -> ShipGameUpdateResult
 batchShipGameUpdates msgs originalShipGame =
     List.foldl
         (\msg shipGameUpdateResult ->
@@ -64,7 +74,7 @@ rolledNumbersHigh =
     { first = 3, second = 4, third = 4, fourth = 5, fifth = 6 }
 
 
-playLowScoringTurn : List ShipGame.ShipGameMsg
+playLowScoringTurn : List ShipGameMsg
 playLowScoringTurn =
     [ ShipGame.Roll rolledNumbersLow
     , ShipGame.Keep 4 -- keep the 6
@@ -76,7 +86,7 @@ playLowScoringTurn =
     ]
 
 
-playHighScoringTurn : List ShipGame.ShipGameMsg
+playHighScoringTurn : List ShipGameMsg
 playHighScoringTurn =
     [ ShipGame.Roll rolledNumbersHigh
     , ShipGame.Keep 4 -- keep the 6
@@ -86,6 +96,16 @@ playHighScoringTurn =
     , ShipGame.Keep 0 -- keep the 3
     , ShipGame.Pass
     ]
+
+
+playRound : List ShipGameMsg
+playRound =
+    List.concat
+        [ playLowScoringTurn
+        , playLowScoringTurn
+        , playLowScoringTurn
+        , playHighScoringTurn
+        ]
 
 
 lowScoringShip : Ship
@@ -213,14 +233,7 @@ suite =
         , test "after playing a whole round" <|
             \_ ->
                 defaultShipGame
-                    |> batchShipGameUpdates
-                        (List.concat
-                            [ playLowScoringTurn
-                            , playLowScoringTurn
-                            , playLowScoringTurn
-                            , playHighScoringTurn
-                            ]
-                        )
+                    |> batchShipGameUpdates playRound
                     |> expectShipGameInfo
                         { round = 1
                         , players =
@@ -233,4 +246,20 @@ suite =
                                 ]
                         , dice = NeverRolled
                         }
+        , test "after playing a whole game" <|
+            \_ ->
+                defaultShipGame
+                    |> batchShipGameUpdates
+                        (List.concat
+                            [ playRound
+                            , playRound
+                            , playRound
+                            ]
+                        )
+                    |> expectGameOver
+                        [ { id = 1, pastShips = [ lowScoringShip, lowScoringShip, lowScoringShip ] }
+                        , { id = 2, pastShips = [ lowScoringShip, lowScoringShip, lowScoringShip ] }
+                        , { id = 3, pastShips = [ lowScoringShip, lowScoringShip, lowScoringShip ] }
+                        , { id = 4, pastShips = [ highScoringShip, highScoringShip, highScoringShip ] }
+                        ]
         ]
