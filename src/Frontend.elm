@@ -2,6 +2,7 @@ module Frontend exposing (..)
 
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Nav
+import Dice exposing (..)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -190,10 +191,46 @@ updateFromBackend msg model =
                     noOp
 
 
+renderDice : Dice -> String
+renderDice dice =
+    let
+        renderValues : List ( Int, Bool ) -> List String
+        renderValues diceValues =
+            List.map
+                (\( value, keep ) ->
+                    if keep then
+                        String.fromInt value ++ "*"
+
+                    else
+                        String.fromInt value
+                )
+                diceValues
+    in
+    case dice of
+        NeverRolled ->
+            "Not rolled"
+
+        RolledOnce diceValues ->
+            "Rolled once (" ++ String.join ", " (renderValues diceValues)
+
+        RolledTwice diceValues ->
+            "Rolled twice (" ++ String.join ", " (renderValues diceValues)
+
+        RolledThrice diceValues ->
+            "Rolled thrice (" ++ String.join ", " (renderValues diceValues)
+
+
 renderShipGame : PlayerId -> ShipGame -> Html FrontendMsg
 renderShipGame playerId { round, players, dice } =
     div []
+        -- Print round
+        -- Dice
+        -- Status of four players
+        -- Player Name
+        -- Current Ship
+        -- Score
         [ div [] [ text <| "Round: " ++ String.fromInt round ]
+        , div [] [ text <| "Dice: " ++ renderDice dice ]
         ]
 
 
