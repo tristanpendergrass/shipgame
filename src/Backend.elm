@@ -209,16 +209,11 @@ updateFromFrontend sessionId clientId msg model =
                     noOp
 
                 Just lobby ->
-                    let
-                        -- Lobby.startGame will return Nothing if the game was in progress or there are no players in the lobby
-                        maybeNewLobby =
-                            Lobby.startGame lobby
-                    in
-                    case maybeNewLobby of
-                        Just newLobby ->
+                    case Lobby.startGame lobby of
+                        Ok newLobby ->
                             ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }, sendLobbyUpdateToFrontend newLobby )
 
-                        Nothing ->
+                        Err _ ->
                             noOp
 
         EndGame lobbyId ->

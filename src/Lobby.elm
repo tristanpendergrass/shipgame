@@ -79,7 +79,12 @@ getPlayerIds lobby =
                 |> List.Nonempty.toList
 
 
-startGame : Lobby -> Maybe Lobby
+type StartLobbyErr
+    = NotEnoughPlayers
+    | GameAlreadyStarted
+
+
+startGame : Lobby -> Result StartLobbyErr Lobby
 startGame lobby =
     case lobby.gameWrapper of
         NotStarted (firstPlayer :: rest) ->
@@ -87,10 +92,13 @@ startGame lobby =
                 game =
                     ShipGame.create (List.Nonempty.Nonempty firstPlayer rest)
             in
-            Just { lobby | gameWrapper = InProgress game }
+            Ok { lobby | gameWrapper = InProgress game }
+
+        NotStarted [] ->
+            Err NotEnoughPlayers
 
         _ ->
-            Nothing
+            Err GameAlreadyStarted
 
 
 endGame : Lobby -> Lobby
