@@ -162,7 +162,7 @@ updateFromBackend msg model =
                     noOp
 
                 ConnectingToGame playerId ->
-                    ( { model | state = NamingPlayer playerId "" newGame }
+                    ( { model | state = NamingPlayer playerId "Jim" newGame }
                     , Cmd.none
                     )
 
