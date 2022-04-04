@@ -190,6 +190,13 @@ updateFromBackend msg model =
                     noOp
 
 
+renderShipGame : PlayerId -> ShipGame -> Html FrontendMsg
+renderShipGame playerId { round, players, dice } =
+    div []
+        [ div [] [ text <| "Round: " ++ String.fromInt round ]
+        ]
+
+
 view : Model -> Browser.Document FrontendMsg
 view model =
     { title = ""
@@ -241,7 +248,7 @@ view model =
                     ConfirmingName _ _ ->
                         text "Entering lobby"
 
-                    InGame _ lobby ->
+                    InGame myPlayerId lobby ->
                         case lobby.gameWrapper of
                             Lobby.NotStarted playerIds ->
                                 div []
@@ -249,22 +256,23 @@ view model =
                                     , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
                                     , div [] [ text "Players:" ]
                                     , div []
-                                        (List.map
-                                            (\playerId ->
-                                                let
-                                                    displayName =
-                                                        Dict.get playerId lobby.playerData
-                                                            |> Maybe.andThen .displayName
-                                                            |> Maybe.withDefault "Anonymous"
-                                                in
-                                                div [] [ text displayName ]
-                                            )
-                                            playerIds
+                                        (playerIds
+                                            |> List.map
+                                                (\playerId ->
+                                                    let
+                                                        displayName =
+                                                            Dict.get playerId lobby.playerData
+                                                                |> Maybe.andThen .displayName
+                                                                |> Maybe.withDefault "Anonymous"
+                                                    in
+                                                    div [] [ text displayName ]
+                                                )
                                         )
+                                    , div [] [ button [ onClick HandleStartGameClick ] [ text "Start game" ] ]
                                     ]
 
                             Lobby.InProgress shipGame ->
-                                div [] [ text "Game in progress" ]
+                                renderShipGame myPlayerId shipGame
                 ]
             ]
         ]
