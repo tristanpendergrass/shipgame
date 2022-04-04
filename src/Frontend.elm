@@ -11,6 +11,8 @@ import Lamdera
 import List.Nonempty
 import Lobby exposing (GameWrapper(..), Lobby)
 import Player exposing (Player, PlayerId)
+import Random
+import SelectionList exposing (SelectionList)
 import ShipGame exposing (..)
 import Types exposing (..)
 import Url
@@ -120,7 +122,7 @@ update msg model =
 
         HandleStartGameClick ->
             case model.state of
-                InGame playerId lobby ->
+                InGame _ lobby ->
                     ( model, Lamdera.sendToBackend (StartGame lobby.id) )
 
                 _ ->
@@ -128,8 +130,16 @@ update msg model =
 
         HandleEndGameClick ->
             case model.state of
-                InGame playerId lobby ->
+                InGame _ lobby ->
                     ( model, Lamdera.sendToBackend (EndGame lobby.id) )
+
+                _ ->
+                    noOp
+
+        HandleRoll ->
+            case model.state of
+                InGame _ lobby ->
+                    ( model, Lamdera.sendToBackend (UpdateGameWithRoll lobby.id) )
 
                 _ ->
                     noOp
@@ -211,17 +221,21 @@ renderDice dice =
             "Not rolled"
 
         RolledOnce diceValues ->
-            "Rolled once (" ++ String.join ", " (renderValues diceValues)
+            "Rolled once (" ++ String.join ", " (renderValues diceValues) ++ ")"
 
         RolledTwice diceValues ->
-            "Rolled twice (" ++ String.join ", " (renderValues diceValues)
+            "Rolled twice (" ++ String.join ", " (renderValues diceValues) ++ ")"
 
         RolledThrice diceValues ->
-            "Rolled thrice (" ++ String.join ", " (renderValues diceValues)
+            "Rolled thrice (" ++ String.join ", " (renderValues diceValues) ++ ")"
 
 
 renderShipGame : PlayerId -> ShipGame -> Html FrontendMsg
 renderShipGame playerId { round, players, dice } =
+    let
+        currentPlayer =
+            SelectionList.getSelected players
+    in
     div []
         -- Print round
         -- Dice
@@ -231,6 +245,7 @@ renderShipGame playerId { round, players, dice } =
         -- Score
         [ div [] [ text <| "Round: " ++ String.fromInt round ]
         , div [] [ text <| "Dice: " ++ renderDice dice ]
+        , div [] [ button [ disabled <| not (currentPlayer.id == playerId), onClick HandleRoll ] [ text "Roll" ] ]
         ]
 
 

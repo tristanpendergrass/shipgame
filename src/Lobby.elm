@@ -133,3 +133,19 @@ addPlayer playerId lobby =
 
         InProgress _ ->
             Nothing
+
+
+updateGame : ShipGame.ShipGameMsg -> Lobby -> Lobby
+updateGame shipGameMsg lobby =
+    case lobby.gameWrapper of
+        NotStarted _ ->
+            lobby
+
+        InProgress game ->
+            case ShipGame.update shipGameMsg game of
+                ShipGame.GameOver _ ->
+                    -- TODO: handle game over
+                    { lobby | gameWrapper = NotStarted [] }
+
+                ShipGame.GameContinues newGame ->
+                    { lobby | gameWrapper = InProgress newGame }

@@ -7,6 +7,7 @@ import Lamdera
 import Lobby exposing (Lobby, LobbyId)
 import Player exposing (PlayerId)
 import Random
+import ShipGame
 import Url exposing (Url)
 
 
@@ -45,6 +46,7 @@ type FrontendMsg
     | HandleNameSubmit
     | HandleStartGameClick
     | HandleEndGameClick
+    | HandleRoll
 
 
 type ToBackend
@@ -54,6 +56,8 @@ type ToBackend
     | NamePlayer LobbyId String
     | StartGame LobbyId
     | EndGame LobbyId
+    | UpdateGame LobbyId ShipGame.ShipGameMsg
+    | UpdateGameWithRoll LobbyId
 
 
 type BackendMsg

@@ -1,5 +1,6 @@
 module Backend exposing (..)
 
+import Dice
 import Dict exposing (Dict)
 import Dict.Extra
 import Lamdera exposing (ClientId, SessionId)
@@ -227,6 +228,45 @@ updateFromFrontend sessionId clientId msg model =
                             Lobby.endGame lobby
                     in
                     ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }, sendLobbyUpdateToFrontend newLobby )
+
+        UpdateGame lobbyId shipGameMsg ->
+            case Dict.get lobbyId model.lobbies of
+                Nothing ->
+                    noOp
+
+                Just lobby ->
+                    let
+                        newLobby =
+                            Lobby.updateGame shipGameMsg lobby
+                    in
+                    ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }, sendLobbyUpdateToFrontend newLobby )
+
+        UpdateGameWithRoll lobbyId ->
+            case Dict.get lobbyId model.lobbies of
+                Nothing ->
+                    noOp
+
+                Just lobby ->
+                    let
+                        dieGenerator =
+                            Random.int 1 6
+
+                        shipGameMsgGenerator =
+                            Random.map5 Dice.RolledNumbers dieGenerator dieGenerator dieGenerator dieGenerator dieGenerator
+                                |> Random.map ShipGame.Roll
+
+                        ( shipGameMsg, newSeed ) =
+                            Random.step shipGameMsgGenerator lobby.seed
+
+                        newLobby =
+                            Lobby.updateGame shipGameMsg lobby
+                    in
+                    ( { model
+                        | lobbies = Dict.insert lobbyId newLobby model.lobbies
+                        , seed = newSeed
+                      }
+                    , sendLobbyUpdateToFrontend newLobby
+                    )
 
 
 subscriptions : Model -> Sub BackendMsg
