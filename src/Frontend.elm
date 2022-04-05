@@ -251,81 +251,88 @@ renderShipGame playerId { round, players, dice } =
 
 view : Model -> Browser.Document FrontendMsg
 view model =
+    let
+        css =
+            -- There's an experimental technique to include styles in header instead of body https://dashboard.lamdera.app/docs/html-head
+            [ Html.node "link" [ rel "stylesheet", href "/output.css" ] []
+            ]
+    in
     { title = ""
     , body =
-        [ div [ style "text-align" "center", style "padding-top" "40px" ]
-            [ img [ src "https://lamdera.app/lamdera-logo-black.png", width 150 ] []
-            , div
-                [ style "font-family" "sans-serif"
-                , style "padding-top" "40px"
-                ]
-                [ case model.state of
-                    Unconnected ->
-                        div [] [ text "Connecting to server..." ]
+        css
+            ++ [ div [ style "text-align" "center", style "padding-top" "40px" ]
+                    [ img [ src "https://lamdera.app/lamdera-logo-black.png", width 150 ] []
+                    , div
+                        [ style "font-family" "sans-serif"
+                        , style "padding-top" "40px"
+                        ]
+                        [ case model.state of
+                            Unconnected ->
+                                div [] [ text "Connecting to server..." ]
 
-                    MainMenu _ joinCode showErrorMessage ->
-                        div []
-                            [ h1 [] [ text "Join a game" ]
-                            , Html.form [ onSubmit HandleJoinCodeSubmit ]
-                                [ div
-                                    [ style "color" "red"
-                                    , style "opacity"
-                                        (if showErrorMessage then
-                                            "100%"
-
-                                         else
-                                            "0"
-                                        )
-                                    ]
-                                    [ text "Join code was incorrect" ]
-                                , div [] [ input [ onInput HandleJoinCodeInput, value joinCode ] [] ]
-                                , div [] [ button [ type_ "submit" ] [ text "Join" ] ]
-                                ]
-                            , h1 [] [ text "Create a game" ]
-                            , Html.button [ onClick HandleCreateGameButtonClick ] [ text "Create game" ]
-                            ]
-
-                    ConnectingToGame _ ->
-                        text "Connecting to game"
-
-                    NamingPlayer _ name gameState ->
-                        div []
-                            [ h1 [] [ text "My name is" ]
-                            , Html.form [ onSubmit HandleNameSubmit ]
-                                [ div [] [ input [ onInput HandleNameInput, value name ] [] ]
-                                , div [] [ button [ type_ "submit" ] [ text "Submit" ] ]
-                                ]
-                            ]
-
-                    ConfirmingName _ _ ->
-                        text "Entering lobby"
-
-                    InGame myPlayerId lobby ->
-                        case lobby.gameWrapper of
-                            Lobby.NotStarted playerIds ->
+                            MainMenu _ joinCode showErrorMessage ->
                                 div []
-                                    [ div [] [ text "Game not started" ]
-                                    , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
-                                    , div [] [ text "Players:" ]
-                                    , div []
-                                        (playerIds
-                                            |> List.map
-                                                (\playerId ->
-                                                    let
-                                                        displayName =
-                                                            Dict.get playerId lobby.playerData
-                                                                |> Maybe.andThen .displayName
-                                                                |> Maybe.withDefault "Anonymous"
-                                                    in
-                                                    div [] [ text displayName ]
+                                    [ h1 [ class "text-red-500 font-bold" ] [ text "Join a game" ]
+                                    , Html.form [ onSubmit HandleJoinCodeSubmit ]
+                                        [ div
+                                            [ style "color" "red"
+                                            , style "opacity"
+                                                (if showErrorMessage then
+                                                    "100%"
+
+                                                 else
+                                                    "0"
                                                 )
-                                        )
-                                    , div [] [ button [ onClick HandleStartGameClick ] [ text "Start game" ] ]
+                                            ]
+                                            [ text "Join code was incorrect" ]
+                                        , div [] [ input [ onInput HandleJoinCodeInput, value joinCode ] [] ]
+                                        , div [] [ button [ type_ "submit" ] [ text "Join" ] ]
+                                        ]
+                                    , h1 [] [ text "Create a game" ]
+                                    , Html.button [ onClick HandleCreateGameButtonClick ] [ text "Create game" ]
                                     ]
 
-                            Lobby.InProgress shipGame ->
-                                renderShipGame myPlayerId shipGame
-                ]
-            ]
-        ]
+                            ConnectingToGame _ ->
+                                text "Connecting to game"
+
+                            NamingPlayer _ name gameState ->
+                                div []
+                                    [ h1 [] [ text "My name is" ]
+                                    , Html.form [ onSubmit HandleNameSubmit ]
+                                        [ div [] [ input [ onInput HandleNameInput, value name ] [] ]
+                                        , div [] [ button [ type_ "submit" ] [ text "Submit" ] ]
+                                        ]
+                                    ]
+
+                            ConfirmingName _ _ ->
+                                text "Entering lobby"
+
+                            InGame myPlayerId lobby ->
+                                case lobby.gameWrapper of
+                                    Lobby.NotStarted playerIds ->
+                                        div []
+                                            [ div [] [ text "Game not started" ]
+                                            , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
+                                            , div [] [ text "Players:" ]
+                                            , div []
+                                                (playerIds
+                                                    |> List.map
+                                                        (\playerId ->
+                                                            let
+                                                                displayName =
+                                                                    Dict.get playerId lobby.playerData
+                                                                        |> Maybe.andThen .displayName
+                                                                        |> Maybe.withDefault "Anonymous"
+                                                            in
+                                                            div [] [ text displayName ]
+                                                        )
+                                                )
+                                            , div [] [ button [ onClick HandleStartGameClick ] [ text "Start game" ] ]
+                                            ]
+
+                                    Lobby.InProgress shipGame ->
+                                        renderShipGame myPlayerId shipGame
+                        ]
+                    ]
+               ]
     }
