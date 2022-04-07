@@ -62,6 +62,19 @@ toList (SelectionList listBefore selected listAfter) =
     List.concat [ listBefore, [ selected ], listAfter ]
 
 
+toTupleList : SelectionList a -> List ( a, Bool )
+toTupleList selectionList =
+    let
+        ( listBefore, selected, listAfter ) =
+            toTuple selectionList
+    in
+    List.concat
+        [ List.map (\x -> ( x, False )) listBefore
+        , [ ( selected, True ) ]
+        , List.map (\x -> ( x, False )) listAfter
+        ]
+
+
 mapSelected : (a -> a) -> SelectionList a -> SelectionList a
 mapSelected fn (SelectionList listBefore selected listAfter) =
     fromLists listBefore (fn selected) listAfter

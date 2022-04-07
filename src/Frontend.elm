@@ -246,6 +246,23 @@ renderShipGame playerId { round, players, dice } =
         [ div [] [ text <| "Round: " ++ String.fromInt round ]
         , div [] [ text <| "Dice: " ++ renderDice dice ]
         , div [] [ button [ disabled <| not (currentPlayer.id == playerId), onClick HandleRoll ] [ text "Roll" ] ]
+        , div [ class "flex" ]
+            (players
+                |> SelectionList.toTupleList
+                |> List.map
+                    (\( player, selected ) ->
+                        div
+                            [ class "w-64 h-64 border border-black rounded"
+                            , class <|
+                                if selected then
+                                    "border-red-500"
+
+                                else
+                                    ""
+                            ]
+                            []
+                    )
+            )
         ]
 
 
@@ -254,14 +271,15 @@ view model =
     let
         css =
             -- There's an experimental technique to include styles in header instead of body https://dashboard.lamdera.app/docs/html-head
+            -- We're not using it for now because it's experimental but might be useful if we want to eliminate the flicker from the css loading in
             [ Html.node "link" [ rel "stylesheet", href "/output.css" ] []
             ]
     in
     { title = ""
     , body =
         css
-            ++ [ div [ style "text-align" "center", style "padding-top" "40px" ]
-                    [ img [ src "https://lamdera.app/lamdera-logo-black.png", width 150 ] []
+            ++ [ div [ class "w-screen flex flex-col justify-center items-center" ]
+                    [ div [ class "inline-block w-64" ] [ img [ src "https://lamdera.app/lamdera-logo-black.png" ] [] ]
                     , div
                         [ style "font-family" "sans-serif"
                         , style "padding-top" "40px"
@@ -272,7 +290,7 @@ view model =
 
                             MainMenu _ joinCode showErrorMessage ->
                                 div []
-                                    [ h1 [ class "text-red-500 font-bold" ] [ text "Join a game" ]
+                                    [ h1 [] [ text "Join a game" ]
                                     , Html.form [ onSubmit HandleJoinCodeSubmit ]
                                         [ div
                                             [ style "color" "red"
@@ -286,7 +304,8 @@ view model =
                                             ]
                                             [ text "Join code was incorrect" ]
                                         , div [] [ input [ onInput HandleJoinCodeInput, value joinCode ] [] ]
-                                        , div [] [ button [ type_ "submit" ] [ text "Join" ] ]
+                                        , div [] [ button [ class "btn btn-primary", type_ "submit" ] [ text "Join" ] ]
+                                        , div [] [ div [ class "badge" ] [ text "Badge" ] ]
                                         ]
                                     , h1 [] [ text "Create a game" ]
                                     , Html.button [ onClick HandleCreateGameButtonClick ] [ text "Create game" ]
