@@ -275,51 +275,52 @@ view model =
             [ Html.node "link" [ rel "stylesheet", href "/output.css" ] []
             ]
     in
-    { title = ""
+    { title = "Shipgame"
     , body =
         css
-            ++ [ div [ class "w-screen flex flex-col justify-center items-center" ]
-                    [ div [ class "inline-block w-64" ] [ img [ src "https://lamdera.app/lamdera-logo-black.png" ] [] ]
-                    , div
-                        [ style "font-family" "sans-serif"
-                        , style "padding-top" "40px"
-                        ]
+            ++ [ div [ class "w-screen h-screen flex flex-col justify-center items-center" ]
+                    [ div []
                         [ case model.state of
                             Unconnected ->
                                 div [] [ text "Connecting to server..." ]
 
                             MainMenu _ joinCode showErrorMessage ->
-                                div []
-                                    [ h1 [] [ text "Join a game" ]
-                                    , Html.form [ onSubmit HandleJoinCodeSubmit ]
-                                        [ div
-                                            [ style "color" "red"
-                                            , style "opacity"
-                                                (if showErrorMessage then
-                                                    "100%"
+                                let
+                                    textClasses =
+                                        "font-red text-4xl"
+                                in
+                                div [ class "flex flex-col justify-center space-y-4" ]
+                                    [ h1 [ class textClasses ] [ text "Join a game" ]
+                                    , Html.form [ onSubmit HandleJoinCodeSubmit, class "flex flex-col items-center space-y-4" ]
+                                        [ div [ class "form-control" ]
+                                            [ label [ class "label", for "join-code-input" ] [ text "Join code" ]
+                                            , input [ onInput HandleJoinCodeInput, value joinCode, class "input input-bordered input-primary", id "join-code-input" ] []
+                                            , div
+                                                [ class "text-red-500"
+                                                , class
+                                                    (if showErrorMessage then
+                                                        ""
 
-                                                 else
-                                                    "0"
-                                                )
+                                                     else
+                                                        "invisible"
+                                                    )
+                                                ]
+                                                [ text "Join code was incorrect" ]
                                             ]
-                                            [ text "Join code was incorrect" ]
-                                        , div [] [ input [ onInput HandleJoinCodeInput, value joinCode ] [] ]
                                         , div [] [ button [ class "btn btn-primary", type_ "submit" ] [ text "Join" ] ]
-                                        , div [] [ div [ class "badge" ] [ text "Badge" ] ]
                                         ]
-                                    , h1 [] [ text "Create a game" ]
-                                    , Html.button [ onClick HandleCreateGameButtonClick ] [ text "Create game" ]
+                                    , button [ onClick HandleCreateGameButtonClick, class "btn btn-secondary" ] [ text "Create game" ]
                                     ]
 
                             ConnectingToGame _ ->
                                 text "Connecting to game"
 
                             NamingPlayer _ name gameState ->
-                                div []
-                                    [ h1 [] [ text "My name is" ]
-                                    , Html.form [ onSubmit HandleNameSubmit ]
-                                        [ div [] [ input [ onInput HandleNameInput, value name ] [] ]
-                                        , div [] [ button [ type_ "submit" ] [ text "Submit" ] ]
+                                div [ class "flex flex-col justify-center space-y-4" ]
+                                    [ div [ class "inline-block" ] [ text "My name is" ]
+                                    , Html.form [ onSubmit HandleNameSubmit, class "flex flex-col items-center space-y-4 form-control" ]
+                                        [ div [] [ input [ onInput HandleNameInput, value name, class "input input-bordered input-primary" ] [] ]
+                                        , div [] [ button [ type_ "submit", class "btn btn-primary" ] [ text "Submit" ] ]
                                         ]
                                     ]
 
@@ -329,8 +330,8 @@ view model =
                             InGame myPlayerId lobby ->
                                 case lobby.gameWrapper of
                                     Lobby.NotStarted playerIds ->
-                                        div []
-                                            [ div [] [ text "Game not started" ]
+                                        div [ class "flex flex-col justify-center space-y-4" ]
+                                            [ div [ class "text-lg" ] [ text "Game not started" ]
                                             , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
                                             , div [] [ text "Players:" ]
                                             , div []
@@ -346,7 +347,7 @@ view model =
                                                             div [] [ text displayName ]
                                                         )
                                                 )
-                                            , div [] [ button [ onClick HandleStartGameClick ] [ text "Start game" ] ]
+                                            , div [] [ button [ onClick HandleStartGameClick, class "btn btn-primary" ] [ text "Start game" ] ]
                                             ]
 
                                     Lobby.InProgress shipGame ->
