@@ -11,6 +11,14 @@ type SessionLobbyStatus
     | InLobby LobbyId
 
 
+{-| | clientId | lobbyId | meaning |
+|------------|-----------|--------------------------------------|
+| Nothing | Nothing | User disconnected while in main menu |
+| Nothing | Just x | User disconnected while in lobby x |
+| Just x | Nothing | User is connected and in main menu |
+| Just x | Just y | User is connected and in lobby y |
+|------------|-----------|--------------------------------------|
+-}
 type alias Session =
     { playerId : PlayerId
     , clientId : Maybe ClientId
@@ -28,5 +36,5 @@ create =
 
 
 addSession : SessionId -> ClientId -> PlayerId -> Sessions -> Sessions
-addSession sessionId clientId playerId sessions =
-    Debug.todo "Implement"
+addSession sessionId clientId playerId =
+    Dict.insert sessionId { playerId = playerId, clientId = Just clientId, lobbyId = Nothing }
