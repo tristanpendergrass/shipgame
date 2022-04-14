@@ -7,6 +7,7 @@ import Lamdera
 import Lobby exposing (Lobby, LobbyId)
 import Player exposing (PlayerId)
 import Random
+import Sessions exposing (Sessions)
 import ShipGame
 import Url exposing (Url)
 
@@ -29,9 +30,9 @@ type alias FrontendModel =
 type alias BackendModel =
     { lobbies : Dict LobbyId Lobby
     , seed : Random.Seed
-    , clientIdToPlayerId : Dict Lamdera.ClientId PlayerId
     , playerIdNonce : PlayerId
     , lobbyIdNonce : LobbyId -- the id that will be assigned to the next created lobby
+    , sessions : Sessions
     }
 
 

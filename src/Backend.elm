@@ -10,6 +10,7 @@ import Player exposing (Player, PlayerId)
 import Random
 import Random.Char
 import Random.String
+import Sessions exposing (Sessions)
 import ShipGame exposing (..)
 import Types exposing (..)
 
@@ -33,12 +34,22 @@ init =
 
       -- TODO: set seed using random process somehow
       , seed = Random.initialSeed 0
-      , clientIdToPlayerId = Dict.empty
       , playerIdNonce = 0
       , lobbyIdNonce = 0
+      , sessions = Sessions.create
       }
     , Cmd.none
     )
+
+
+updateSessions : (Sessions -> Sessions) -> Model -> Model
+updateSessions fn model =
+    { model | sessions = fn model.sessions }
+
+
+updatePlayerIdNonce : (Int -> Int) -> Model -> Model
+updatePlayerIdNonce fn model =
+    { model | playerIdNonce = fn model.playerIdNonce }
 
 
 update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
@@ -47,19 +58,23 @@ update msg model =
         NoOpBackendMsg ->
             ( model, Cmd.none )
 
-        HandleConnect _ clientId ->
-            let
-                playerId =
-                    model.playerIdNonce
-            in
-            ( { model
-                | clientIdToPlayerId =
-                    model.clientIdToPlayerId
-                        |> Dict.insert clientId playerId
-                , playerIdNonce = model.playerIdNonce + 1
-              }
-            , Lamdera.sendToFrontend clientId (AssignPlayerId playerId)
-            )
+        HandleConnect sessionId clientId ->
+            case Dict.get sessionId model.sessions of
+                Nothing ->
+                    -- User is loading site for the very first time
+                    let
+                        newPlayerId =
+                            model.playerIdNonce
+                    in
+                    ( model
+                        |> updateSessions (Sessions.addSession sessionId clientId newPlayerId)
+                        |> updatePlayerIdNonce ((+) 1)
+                    , Lamdera.sendToFrontend clientId (AssignPlayerId newPlayerId)
+                    )
+
+                Just session ->
+                    -- Returning user is connecting
+                    Debug.todo "Update clientId in session and send appropriate message to frontend"
 
         HandleDisconnect _ clientId ->
             case Dict.get clientId model.clientIdToPlayerId of
