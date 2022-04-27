@@ -1,6 +1,7 @@
 module Sessions exposing (..)
 
 import Dict exposing (Dict)
+import Dict.Extra
 import Lamdera exposing (..)
 import Lobby exposing (LobbyId)
 import Player exposing (PlayerId)
@@ -46,5 +47,7 @@ updateClientId sessionId clientId =
 
 
 clientIdForPlayerId : Sessions -> PlayerId -> Maybe ClientId
-clientIdForPlayerId playerIdMap playerId =
-    Debug.todo "Implement"
+clientIdForPlayerId sessions playerId =
+    sessions
+        |> Dict.Extra.find (\_ session -> session.playerId == playerId)
+        |> Maybe.andThen (\( _, session ) -> session.clientId)
