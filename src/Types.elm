@@ -74,4 +74,5 @@ type ToFrontend
     | AssignPlayerId PlayerId
     | AssignPlayerIdAndLobby PlayerId Lobby
     | UpdateLobby Lobby
+    | UpdatePlayerData (Dict PlayerId Player)
     | JoinGameFailed

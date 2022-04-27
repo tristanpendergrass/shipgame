@@ -204,6 +204,9 @@ updateFromBackend msg model =
                 _ ->
                     noOp
 
+        UpdatePlayerData playerData ->
+            ( { model | playerData = playerData }, Cmd.none )
+
 
 renderDice : Dice -> String
 renderDice dice =

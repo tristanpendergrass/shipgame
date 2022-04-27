@@ -128,6 +128,16 @@ updateFromFrontend sessionId clientId msg model =
                         Lamdera.sendToFrontend id (UpdateLobby newLobby)
                     )
                 |> Cmd.batch
+
+        sendLobbyPlayerDataUpdate : Dict PlayerId Player -> Lobby -> List (Cmd BackendMsg)
+        sendLobbyPlayerDataUpdate playerData lobby =
+            lobby
+                |> Lobby.getPlayerIds
+                |> List.filterMap (Sessions.clientIdForPlayerId model.sessions)
+                |> List.map
+                    (\clientIdToUpdate ->
+                        Lamdera.sendToFrontend clientIdToUpdate (UpdatePlayerData playerData)
+                    )
     in
     case msg of
         NoOpToBackend ->
@@ -214,31 +224,41 @@ updateFromFrontend sessionId clientId msg model =
                                             )
 
         NamePlayer name ->
-            let
-                maybePlayerId =
-                    Dict.get sessionId model.sessions
-                        |> Maybe.map .playerId
-            in
-            case maybePlayerId of
+            -- TODO: clean this function up
+            case Dict.get sessionId model.sessions of
                 Nothing ->
                     noOp
 
-                Just playerId ->
-                    -- TODO: update lobby
-                    ( { model
-                        | playerData =
+                Just session ->
+                    let
+                        newPlayerData =
                             model.playerData
-                                |> Dict.update playerId
+                                |> Dict.update session.playerId
                                     (\maybePlayer ->
                                         case maybePlayer of
                                             Nothing ->
-                                                Just { id = playerId, displayName = Just name }
+                                                Just { id = session.playerId, displayName = Just name }
 
                                             Just player ->
                                                 Just { player | displayName = Just name }
                                     )
+
+                        maybeLobby =
+                            session.lobbyId
+                                |> Maybe.andThen (\lobbyId -> Dict.get lobbyId model.lobbies)
+
+                        backendMsg =
+                            case maybeLobby of
+                                Nothing ->
+                                    Cmd.none
+
+                                Just lobby ->
+                                    Cmd.batch <| sendLobbyPlayerDataUpdate newPlayerData lobby
+                    in
+                    ( { model
+                        | playerData = newPlayerData
                       }
-                    , Cmd.none
+                    , backendMsg
                     )
 
         StartGame lobbyId ->
