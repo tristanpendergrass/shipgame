@@ -243,15 +243,15 @@ updateFromFrontend sessionId clientId msg model =
 
         NamePlayer name ->
             -- TODO: clean this function up
-            case Sessions.getSessionAndLobbyId sessionId model.sessions of
+            case Sessions.getPlayerIdAndLobbyId sessionId model.sessions of
                 Nothing ->
                     noOp
 
-                Just ( session, lobbyId ) ->
+                Just ( playerId, lobbyId ) ->
                     let
                         newPlayerData =
                             model.playerData
-                                |> giveNameToPlayerId name session.playerId
+                                |> giveNameToPlayerId name playerId
 
                         maybeLobby =
                             Dict.get lobbyId model.lobbies

@@ -55,8 +55,8 @@ clientIdForPlayerId sessions playerId =
 
 {-| Get a session for a session id only if the player is in a Lobby.addPlayer
 -}
-getSessionAndLobbyId : SessionId -> Sessions -> Maybe ( Session, LobbyId )
-getSessionAndLobbyId sessionId sessions =
+getPlayerIdAndLobbyId : SessionId -> Sessions -> Maybe ( PlayerId, LobbyId )
+getPlayerIdAndLobbyId sessionId sessions =
     case Dict.get sessionId sessions of
         Nothing ->
             Nothing
@@ -67,4 +67,4 @@ getSessionAndLobbyId sessionId sessions =
                     Nothing
 
                 Just lobbyId ->
-                    Just ( session, lobbyId )
+                    Just ( session.playerId, lobbyId )
