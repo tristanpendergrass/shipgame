@@ -38,6 +38,7 @@ init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     ( { key = key
       , state = Unconnected
+      , playerData = Dict.empty
       }
     , Cmd.none
     )
@@ -115,7 +116,7 @@ update msg model =
         HandleNameSubmit ->
             case model.state of
                 NamingPlayer playerId name gameState ->
-                    ( { model | state = ConfirmingName playerId gameState }, Lamdera.sendToBackend (NamePlayer gameState.id name) )
+                    ( { model | state = ConfirmingName playerId gameState }, Lamdera.sendToBackend (NamePlayer name) )
 
                 _ ->
                     noOp
@@ -166,6 +167,9 @@ updateFromBackend msg model =
 
                 _ ->
                     noOp
+
+        AssignPlayerIdAndLobby playerId lobby ->
+            ( { model | state = InGame playerId lobby }, Cmd.none )
 
         UpdateLobby newGame ->
             case model.state of
@@ -340,7 +344,7 @@ view model =
                                                         (\playerId ->
                                                             let
                                                                 displayName =
-                                                                    Dict.get playerId lobby.playerData
+                                                                    Dict.get playerId model.playerData
                                                                         |> Maybe.andThen .displayName
                                                                         |> Maybe.withDefault "Anonymous"
                                                             in

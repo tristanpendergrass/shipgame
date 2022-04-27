@@ -38,3 +38,13 @@ create =
 addSession : SessionId -> ClientId -> PlayerId -> Sessions -> Sessions
 addSession sessionId clientId playerId =
     Dict.insert sessionId { playerId = playerId, clientId = Just clientId, lobbyId = Nothing }
+
+
+updateClientId : SessionId -> ClientId -> Sessions -> Sessions
+updateClientId sessionId clientId =
+    Dict.update sessionId (Maybe.map (\session -> { session | clientId = Just clientId }))
+
+
+clientIdForPlayerId : Sessions -> PlayerId -> Maybe ClientId
+clientIdForPlayerId playerIdMap playerId =
+    Debug.todo "Implement"

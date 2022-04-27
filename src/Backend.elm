@@ -37,6 +37,7 @@ init =
       , playerIdNonce = 0
       , lobbyIdNonce = 0
       , sessions = Sessions.create
+      , playerData = Dict.empty
       }
     , Cmd.none
     )
@@ -54,14 +55,18 @@ updatePlayerIdNonce fn model =
 
 update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
 update msg model =
+    let
+        noOp =
+            ( model, Cmd.none )
+    in
     case msg of
         NoOpBackendMsg ->
-            ( model, Cmd.none )
+            noOp
 
         HandleConnect sessionId clientId ->
             case Dict.get sessionId model.sessions of
                 Nothing ->
-                    -- User is loading site for the very first time
+                    -- User is loading site for the very first time this session
                     let
                         newPlayerId =
                             model.playerIdNonce
@@ -73,30 +78,27 @@ update msg model =
                     )
 
                 Just session ->
-                    -- Returning user is connecting
-                    Debug.todo "Update clientId in session and send appropriate message to frontend"
+                    let
+                        maybeLobby =
+                            session.lobbyId
+                                |> Maybe.andThen (\lobbyId -> Dict.get lobbyId model.lobbies)
 
-        HandleDisconnect _ clientId ->
-            case Dict.get clientId model.clientIdToPlayerId of
-                Just playerId ->
-                    ( { model
-                        | lobbies =
-                            model.lobbies
-                                |> Dict.map (\_ lobby -> Lobby.removePlayer playerId lobby)
-                                |> Dict.filter (\_ lobby -> Lobby.isEmpty lobby)
-                      }
-                    , Cmd.none
+                        messageToFrontend =
+                            case maybeLobby of
+                                Nothing ->
+                                    Lamdera.sendToFrontend clientId (AssignPlayerId session.playerId)
+
+                                Just lobby ->
+                                    -- TODO: notify other players in lobby
+                                    Lamdera.sendToFrontend clientId (AssignPlayerIdAndLobby session.playerId lobby)
+                    in
+                    ( model
+                        |> updateSessions (Dict.insert sessionId { session | clientId = Just clientId })
+                    , messageToFrontend
                     )
 
-                Nothing ->
-                    ( model, Cmd.none )
-
-
-clientIdForPlayerId : Dict ClientId PlayerId -> PlayerId -> Maybe ClientId
-clientIdForPlayerId playerIdMap playerId =
-    playerIdMap
-        |> Dict.Extra.invert
-        |> Dict.get playerId
+        HandleDisconnect _ _ ->
+            noOp
 
 
 generateJoinCode : Random.Generator String
@@ -118,7 +120,7 @@ updateFromFrontend sessionId clientId msg model =
 
                 clientIds =
                     playerIds
-                        |> List.filterMap (clientIdForPlayerId model.clientIdToPlayerId)
+                        |> List.filterMap (Sessions.clientIdForPlayerId model.sessions)
             in
             clientIds
                 |> List.map
@@ -132,7 +134,13 @@ updateFromFrontend sessionId clientId msg model =
             noOp
 
         CreateLobby ->
-            case Dict.get clientId model.clientIdToPlayerId of
+            let
+                maybePlayerId =
+                    model.sessions
+                        |> Dict.get sessionId
+                        |> Maybe.map .playerId
+            in
+            case maybePlayerId of
                 Nothing ->
                     noOp
 
@@ -161,7 +169,13 @@ updateFromFrontend sessionId clientId msg model =
                     )
 
         JoinGame joinCode ->
-            case Dict.get clientId model.clientIdToPlayerId of
+            let
+                maybePlayerId =
+                    model.sessions
+                        |> Dict.get sessionId
+                        |> Maybe.map .playerId
+            in
+            case maybePlayerId of
                 Nothing ->
                     noOp
 
@@ -199,25 +213,33 @@ updateFromFrontend sessionId clientId msg model =
                                             , sendLobbyUpdateToFrontend newLobby
                                             )
 
-        NamePlayer lobbyId name ->
-            case Dict.get clientId model.clientIdToPlayerId of
+        NamePlayer name ->
+            let
+                maybePlayerId =
+                    Dict.get sessionId model.sessions
+                        |> Maybe.map .playerId
+            in
+            case maybePlayerId of
                 Nothing ->
                     noOp
 
                 Just playerId ->
-                    case Dict.get lobbyId model.lobbies of
-                        Nothing ->
-                            noOp
+                    -- TODO: update lobby
+                    ( { model
+                        | playerData =
+                            model.playerData
+                                |> Dict.update playerId
+                                    (\maybePlayer ->
+                                        case maybePlayer of
+                                            Nothing ->
+                                                Just { id = playerId, displayName = Just name }
 
-                        Just lobby ->
-                            let
-                                newLobby : Lobby
-                                newLobby =
-                                    Lobby.namePlayer playerId name lobby
-                            in
-                            ( { model | lobbies = model.lobbies |> Dict.insert lobbyId newLobby }
-                            , sendLobbyUpdateToFrontend newLobby
-                            )
+                                            Just player ->
+                                                Just { player | displayName = Just name }
+                                    )
+                      }
+                    , Cmd.none
+                    )
 
         StartGame lobbyId ->
             case Dict.get lobbyId model.lobbies of

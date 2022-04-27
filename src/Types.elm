@@ -5,7 +5,7 @@ import Browser.Navigation exposing (Key)
 import Dict exposing (Dict)
 import Lamdera
 import Lobby exposing (Lobby, LobbyId)
-import Player exposing (PlayerId)
+import Player exposing (Player, PlayerId)
 import Random
 import Sessions exposing (Sessions)
 import ShipGame
@@ -24,6 +24,7 @@ type FrontendState
 type alias FrontendModel =
     { key : Key -- used by Browser.Navigation for things like pushUrl
     , state : FrontendState
+    , playerData : Dict PlayerId Player
     }
 
 
@@ -33,6 +34,7 @@ type alias BackendModel =
     , playerIdNonce : PlayerId
     , lobbyIdNonce : LobbyId -- the id that will be assigned to the next created lobby
     , sessions : Sessions
+    , playerData : Dict PlayerId Player
     }
 
 
@@ -54,7 +56,7 @@ type ToBackend
     = NoOpToBackend
     | CreateLobby
     | JoinGame String
-    | NamePlayer LobbyId String
+    | NamePlayer String
     | StartGame LobbyId
     | EndGame LobbyId
     | UpdateGame LobbyId ShipGame.ShipGameMsg
@@ -70,5 +72,6 @@ type BackendMsg
 type ToFrontend
     = NoOpToFrontend
     | AssignPlayerId PlayerId
+    | AssignPlayerIdAndLobby PlayerId Lobby
     | UpdateLobby Lobby
     | JoinGameFailed

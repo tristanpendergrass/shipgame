@@ -23,7 +23,6 @@ type GameWrapper
 type alias Lobby =
     { id : LobbyId
     , joinCode : String -- the code that players can use to join the game
-    , playerData : Dict PlayerId Player -- possible todo: make this live in BackendModel instead and sync to frontend so player preferences will persist lobby to lobby
     , gameWrapper : GameWrapper
     , seed : Random.Seed
     }
@@ -33,7 +32,6 @@ create : LobbyId -> String -> PlayerId -> Random.Seed -> Lobby
 create lobbyId joinCode playerId seed =
     { id = lobbyId
     , joinCode = joinCode
-    , playerData = Dict.singleton playerId (Player playerId Nothing)
     , gameWrapper = NotStarted [ playerId ]
     , seed = seed
     }
@@ -42,8 +40,7 @@ create lobbyId joinCode playerId seed =
 removePlayer : PlayerId -> Lobby -> Lobby
 removePlayer removedPlayerId lobby =
     { lobby
-        | playerData = Dict.remove removedPlayerId lobby.playerData
-        , gameWrapper =
+        | gameWrapper =
             case lobby.gameWrapper of
                 NotStarted playerIds ->
                     NotStarted (List.filter ((/=) removedPlayerId) playerIds)
@@ -111,25 +108,11 @@ endGame lobby =
             lobby
 
 
-namePlayer : PlayerId -> String -> Lobby -> Lobby
-namePlayer playerId name lobby =
-    let
-        newPlayerData =
-            lobby.playerData
-                |> Dict.update playerId (Maybe.map (\playerData -> { playerData | displayName = Just name }))
-    in
-    { lobby | playerData = newPlayerData }
-
-
 addPlayer : PlayerId -> Lobby -> Maybe Lobby
 addPlayer playerId lobby =
     case lobby.gameWrapper of
         NotStarted playerIds ->
-            Just
-                { lobby
-                    | gameWrapper = NotStarted (playerId :: playerIds)
-                    , playerData = Dict.insert playerId (Player playerId Nothing) lobby.playerData
-                }
+            Just { lobby | gameWrapper = NotStarted (playerId :: playerIds) }
 
         InProgress _ ->
             Nothing
