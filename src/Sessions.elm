@@ -51,3 +51,20 @@ clientIdForPlayerId sessions playerId =
     sessions
         |> Dict.Extra.find (\_ session -> session.playerId == playerId)
         |> Maybe.andThen (\( _, session ) -> session.clientId)
+
+
+{-| Get a session for a session id only if the player is in a Lobby.addPlayer
+-}
+getSessionAndLobbyId : SessionId -> Sessions -> Maybe ( Session, LobbyId )
+getSessionAndLobbyId sessionId sessions =
+    case Dict.get sessionId sessions of
+        Nothing ->
+            Nothing
+
+        Just session ->
+            case session.lobbyId of
+                Nothing ->
+                    Nothing
+
+                Just lobbyId ->
+                    Just ( session, lobbyId )

@@ -53,6 +53,11 @@ updatePlayerIdNonce fn model =
     { model | playerIdNonce = fn model.playerIdNonce }
 
 
+setPlayerData : PlayerData -> Model -> Model
+setPlayerData playerData model =
+    { model | playerData = playerData }
+
+
 update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
 update msg model =
     let
@@ -106,6 +111,19 @@ generateJoinCode =
     Random.String.string 4 Random.Char.upperCaseLatin
 
 
+giveNameToPlayerId : String -> PlayerId -> PlayerData -> PlayerData
+giveNameToPlayerId name playerId =
+    Dict.update playerId
+        (\maybePlayer ->
+            case maybePlayer of
+                Nothing ->
+                    Just { id = playerId, displayName = Just name }
+
+                Just player ->
+                    Just { player | displayName = Just name }
+        )
+
+
 updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
 updateFromFrontend sessionId clientId msg model =
     let
@@ -129,7 +147,7 @@ updateFromFrontend sessionId clientId msg model =
                     )
                 |> Cmd.batch
 
-        sendLobbyPlayerDataUpdate : Dict PlayerId Player -> Lobby -> List (Cmd BackendMsg)
+        sendLobbyPlayerDataUpdate : PlayerData -> Lobby -> List (Cmd BackendMsg)
         sendLobbyPlayerDataUpdate playerData lobby =
             lobby
                 |> Lobby.getPlayerIds
@@ -225,27 +243,18 @@ updateFromFrontend sessionId clientId msg model =
 
         NamePlayer name ->
             -- TODO: clean this function up
-            case Dict.get sessionId model.sessions of
+            case Sessions.getSessionAndLobbyId sessionId model.sessions of
                 Nothing ->
                     noOp
 
-                Just session ->
+                Just ( session, lobbyId ) ->
                     let
                         newPlayerData =
                             model.playerData
-                                |> Dict.update session.playerId
-                                    (\maybePlayer ->
-                                        case maybePlayer of
-                                            Nothing ->
-                                                Just { id = session.playerId, displayName = Just name }
-
-                                            Just player ->
-                                                Just { player | displayName = Just name }
-                                    )
+                                |> giveNameToPlayerId name session.playerId
 
                         maybeLobby =
-                            session.lobbyId
-                                |> Maybe.andThen (\lobbyId -> Dict.get lobbyId model.lobbies)
+                            Dict.get lobbyId model.lobbies
 
                         backendMsg =
                             case maybeLobby of
@@ -255,9 +264,8 @@ updateFromFrontend sessionId clientId msg model =
                                 Just lobby ->
                                     Cmd.batch <| sendLobbyPlayerDataUpdate newPlayerData lobby
                     in
-                    ( { model
-                        | playerData = newPlayerData
-                      }
+                    ( model
+                        |> setPlayerData newPlayerData
                     , backendMsg
                     )
 

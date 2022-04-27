@@ -12,6 +12,10 @@ import ShipGame
 import Url exposing (Url)
 
 
+type alias PlayerData =
+    Dict PlayerId Player
+
+
 type FrontendState
     = Unconnected
     | MainMenu PlayerId String Bool -- the string is the join code and the bool is whether to show the "join code was wrong" error message
@@ -24,7 +28,7 @@ type FrontendState
 type alias FrontendModel =
     { key : Key -- used by Browser.Navigation for things like pushUrl
     , state : FrontendState
-    , playerData : Dict PlayerId Player
+    , playerData : PlayerData
     }
 
 
@@ -34,7 +38,7 @@ type alias BackendModel =
     , playerIdNonce : PlayerId
     , lobbyIdNonce : LobbyId -- the id that will be assigned to the next created lobby
     , sessions : Sessions
-    , playerData : Dict PlayerId Player
+    , playerData : PlayerData
     }
 
 
