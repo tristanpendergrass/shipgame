@@ -18,17 +18,13 @@ type alias PlayerData =
 
 type FrontendState
     = Unconnected
-    | MainMenu PlayerId String Bool -- the string is the join code and the bool is whether to show the "join code was wrong" error message
-    | ConnectingToGame PlayerId
-    | NamingPlayer PlayerId String Lobby
-    | ConfirmingName PlayerId Lobby
-    | InGame PlayerId Lobby
+    | MainMenu { id : PlayerId, joinCode : String, joinCodeIsInvalid : Bool, formSubmitted : Bool }
+    | InGame { id : PlayerId, lobby : Lobby, playerData : PlayerData }
 
 
 type alias FrontendModel =
     { key : Key -- used by Browser.Navigation for things like pushUrl
     , state : FrontendState
-    , playerData : PlayerData
     }
 
 
@@ -75,8 +71,8 @@ type BackendMsg
 
 type ToFrontend
     = NoOpToFrontend
-    | AssignPlayerId PlayerId
-    | AssignPlayerIdAndLobby PlayerId Lobby
+    | GoToMainMenu PlayerId
+    | GoToInGame PlayerId Lobby PlayerData
     | UpdateLobby Lobby
     | UpdatePlayerData (Dict PlayerId Player)
     | JoinGameFailed

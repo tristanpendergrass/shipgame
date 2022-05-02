@@ -38,7 +38,6 @@ init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     ( { key = key
       , state = Unconnected
-      , playerData = Dict.empty
       }
     , Cmd.none
     )
@@ -71,9 +70,9 @@ update msg model =
 
         HandleJoinCodeInput newJoinCode ->
             case model.state of
-                MainMenu playerId _ _ ->
+                MainMenu mainMenuState ->
                     ( { model
-                        | state = MainMenu playerId newJoinCode False
+                        | state = MainMenu { mainMenuState | joinCode = newJoinCode, joinCodeIsInvalid = False }
                       }
                     , Cmd.none
                     )
@@ -83,11 +82,11 @@ update msg model =
 
         HandleJoinCodeSubmit ->
             case model.state of
-                MainMenu playerId joinCode _ ->
+                MainMenu mainMenuState ->
                     ( { model
-                        | state = ConnectingToGame playerId
+                        | state = MainMenu { mainMenuState | joinCodeIsInvalid = False, formSubmitted = True }
                       }
-                    , Lamdera.sendToBackend (JoinGame joinCode)
+                    , Lamdera.sendToBackend (JoinGame mainMenuState.joinCode)
                     )
 
                 _ ->
@@ -95,9 +94,9 @@ update msg model =
 
         HandleCreateGameButtonClick ->
             case model.state of
-                MainMenu playerId _ _ ->
+                MainMenu mainMenuState ->
                     ( { model
-                        | state = ConnectingToGame playerId
+                        | state = MainMenu { mainMenuState | joinCode = "", joinCodeIsInvalid = False, formSubmitted = True }
                       }
                     , Lamdera.sendToBackend CreateLobby
                     )
@@ -107,23 +106,24 @@ update msg model =
 
         HandleNameInput newName ->
             case model.state of
-                NamingPlayer playerId _ gameState ->
-                    ( { model | state = NamingPlayer playerId newName gameState }, Cmd.none )
+                InGame inGameState ->
+                    Debug.todo "Implement"
 
                 _ ->
                     noOp
 
         HandleNameSubmit ->
             case model.state of
-                NamingPlayer playerId name gameState ->
-                    ( { model | state = ConfirmingName playerId gameState }, Lamdera.sendToBackend (NamePlayer name) )
+                InGame inGameState ->
+                    Debug.todo "Implement"
 
                 _ ->
                     noOp
 
         HandleStartGameClick ->
             case model.state of
-                InGame _ lobby ->
+                InGame { lobby } ->
+                    -- TODO: disable start game button?
                     ( model, Lamdera.sendToBackend (StartGame lobby.id) )
 
                 _ ->
@@ -131,7 +131,7 @@ update msg model =
 
         HandleEndGameClick ->
             case model.state of
-                InGame _ lobby ->
+                InGame { lobby } ->
                     ( model, Lamdera.sendToBackend (EndGame lobby.id) )
 
                 _ ->
@@ -139,7 +139,7 @@ update msg model =
 
         HandleRoll ->
             case model.state of
-                InGame _ lobby ->
+                InGame { lobby } ->
                     ( model, Lamdera.sendToBackend (UpdateGameWithRoll lobby.id) )
 
                 _ ->
@@ -158,36 +158,46 @@ updateFromBackend msg model =
             , Cmd.none
             )
 
-        AssignPlayerId playerId ->
+        GoToMainMenu playerId ->
             case model.state of
                 Unconnected ->
-                    ( { model | state = MainMenu playerId "JKLM" False }
+                    ( { model
+                        | state =
+                            MainMenu
+                                { id = playerId
+                                , joinCode = "JKLM"
+                                , joinCodeIsInvalid = False
+                                , formSubmitted = False
+                                }
+                      }
                     , Cmd.none
                     )
 
                 _ ->
                     noOp
 
-        AssignPlayerIdAndLobby playerId lobby ->
-            ( { model | state = InGame playerId lobby }, Cmd.none )
+        GoToInGame playerId lobby playerData ->
+            ( { model
+                | state =
+                    InGame
+                        { id = playerId
+                        , lobby = lobby
+                        , playerData = playerData
+                        }
+              }
+            , Cmd.none
+            )
 
-        UpdateLobby newGame ->
+        UpdateLobby newLobby ->
             case model.state of
-                Unconnected ->
-                    noOp
-
-                ConnectingToGame playerId ->
-                    ( { model | state = NamingPlayer playerId "Jim" newGame }
-                    , Cmd.none
-                    )
-
-                ConfirmingName playerId _ ->
-                    ( { model | state = InGame playerId newGame }
-                    , Cmd.none
-                    )
-
-                InGame playerId _ ->
-                    ( { model | state = InGame playerId newGame }
+                InGame inGameState ->
+                    ( { model
+                        | state =
+                            InGame
+                                { inGameState
+                                    | lobby = newLobby
+                                }
+                      }
                     , Cmd.none
                     )
 
@@ -196,16 +206,27 @@ updateFromBackend msg model =
 
         JoinGameFailed ->
             case model.state of
-                ConnectingToGame playerId ->
-                    ( { model | state = MainMenu playerId "" True }
+                MainMenu mainMenuState ->
+                    Debug.todo "Implement"
+
+                _ ->
+                    noOp
+
+        UpdatePlayerData newPlayerData ->
+            case model.state of
+                InGame inGameState ->
+                    ( { model
+                        | state =
+                            InGame
+                                { inGameState
+                                    | playerData = newPlayerData
+                                }
+                      }
                     , Cmd.none
                     )
 
                 _ ->
                     noOp
-
-        UpdatePlayerData playerData ->
-            ( { model | playerData = playerData }, Cmd.none )
 
 
 renderDice : Dice -> String
@@ -291,50 +312,50 @@ view model =
                             Unconnected ->
                                 div [] [ text "Connecting to server..." ]
 
-                            MainMenu _ joinCode showErrorMessage ->
-                                let
-                                    textClasses =
-                                        "font-red text-4xl"
-                                in
-                                div [ class "flex flex-col justify-center space-y-4" ]
-                                    [ h1 [ class textClasses ] [ text "Join a game" ]
-                                    , Html.form [ onSubmit HandleJoinCodeSubmit, class "flex flex-col items-center space-y-4" ]
-                                        [ div [ class "form-control" ]
-                                            [ label [ class "label", for "join-code-input" ] [ text "Join code" ]
-                                            , input [ onInput HandleJoinCodeInput, value joinCode, class "input input-bordered input-primary", id "join-code-input" ] []
-                                            , div
-                                                [ class "text-red-500"
-                                                , class
-                                                    (if showErrorMessage then
-                                                        ""
+                            MainMenu { joinCode, joinCodeIsInvalid, formSubmitted } ->
+                                if not formSubmitted then
+                                    let
+                                        textClasses =
+                                            "font-red text-4xl"
+                                    in
+                                    div [ class "flex flex-col justify-center space-y-4" ]
+                                        [ h1 [ class textClasses ] [ text "Join a game" ]
+                                        , Html.form [ onSubmit HandleJoinCodeSubmit, class "flex flex-col items-center space-y-4" ]
+                                            [ div [ class "form-control" ]
+                                                [ label [ class "label", for "join-code-input" ] [ text "Join code" ]
+                                                , input [ onInput HandleJoinCodeInput, value joinCode, class "input input-bordered input-primary", id "join-code-input" ] []
+                                                , div
+                                                    [ class "text-red-500"
+                                                    , class
+                                                        (if joinCodeIsInvalid then
+                                                            ""
 
-                                                     else
-                                                        "invisible"
-                                                    )
+                                                         else
+                                                            "invisible"
+                                                        )
+                                                    ]
+                                                    [ text "Join code was incorrect" ]
                                                 ]
-                                                [ text "Join code was incorrect" ]
+                                            , div [] [ button [ class "btn btn-primary", type_ "submit" ] [ text "Join" ] ]
                                             ]
-                                        , div [] [ button [ class "btn btn-primary", type_ "submit" ] [ text "Join" ] ]
+                                        , button [ onClick HandleCreateGameButtonClick, class "btn btn-secondary" ] [ text "Create game" ]
                                         ]
-                                    , button [ onClick HandleCreateGameButtonClick, class "btn btn-secondary" ] [ text "Create game" ]
-                                    ]
 
-                            ConnectingToGame _ ->
-                                text "Connecting to game"
+                                else
+                                    -- Trying to connect to new or existing game
+                                    text "Connecting to game"
 
-                            NamingPlayer _ name gameState ->
-                                div [ class "flex flex-col justify-center space-y-4" ]
-                                    [ div [ class "inline-block" ] [ text "My name is" ]
-                                    , Html.form [ onSubmit HandleNameSubmit, class "flex flex-col items-center space-y-4 form-control" ]
-                                        [ div [] [ input [ onInput HandleNameInput, value name, class "input input-bordered input-primary" ] [] ]
-                                        , div [] [ button [ type_ "submit", class "btn btn-primary" ] [ text "Submit" ] ]
-                                        ]
-                                    ]
-
-                            ConfirmingName _ _ ->
-                                text "Entering lobby"
-
-                            InGame myPlayerId lobby ->
+                            -- NamingPlayer _ name gameState ->
+                            --     div [ class "flex flex-col justify-center space-y-4" ]
+                            --         [ div [ class "inline-block" ] [ text "My name is" ]
+                            --         , Html.form [ onSubmit HandleNameSubmit, class "flex flex-col items-center space-y-4 form-control" ]
+                            --             [ div [] [ input [ onInput HandleNameInput, value name, class "input input-bordered input-primary" ] [] ]
+                            --             , div [] [ button [ type_ "submit", class "btn btn-primary" ] [ text "Submit" ] ]
+                            --             ]
+                            --         ]
+                            -- ConfirmingName _ _ ->
+                            --     text "Entering lobby"
+                            InGame { id, lobby, playerData } ->
                                 case lobby.gameWrapper of
                                     Lobby.NotStarted playerIds ->
                                         div [ class "flex flex-col justify-center space-y-4" ]
@@ -347,7 +368,7 @@ view model =
                                                         (\playerId ->
                                                             let
                                                                 displayName =
-                                                                    Dict.get playerId model.playerData
+                                                                    Dict.get playerId playerData
                                                                         |> Maybe.andThen .displayName
                                                                         |> Maybe.withDefault "Anonymous"
                                                             in
@@ -358,7 +379,7 @@ view model =
                                             ]
 
                                     Lobby.InProgress shipGame ->
-                                        renderShipGame myPlayerId shipGame
+                                        renderShipGame id shipGame
                         ]
                     ]
                ]

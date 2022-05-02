@@ -79,7 +79,7 @@ update msg model =
                     ( model
                         |> updateSessions (Sessions.addSession sessionId clientId newPlayerId)
                         |> updatePlayerIdNonce ((+) 1)
-                    , Lamdera.sendToFrontend clientId (AssignPlayerId newPlayerId)
+                    , Lamdera.sendToFrontend clientId (GoToMainMenu newPlayerId)
                     )
 
                 Just session ->
@@ -91,11 +91,15 @@ update msg model =
                         messageToFrontend =
                             case maybeLobby of
                                 Nothing ->
-                                    Lamdera.sendToFrontend clientId (AssignPlayerId session.playerId)
+                                    Lamdera.sendToFrontend clientId (GoToMainMenu session.playerId)
 
                                 Just lobby ->
                                     -- TODO: notify other players in lobby
-                                    Lamdera.sendToFrontend clientId (AssignPlayerIdAndLobby session.playerId lobby)
+                                    Cmd.batch <|
+                                        List.concat
+                                            [ sendLobbyPlayerDataUpdate newPlayerData lobby
+                                            , [ Lamdera.sendToFrontend clientId (AssignPlayerIdAndLobby session.playerId lobby) ]
+                                            ]
                     in
                     ( model
                         |> updateSessions (Dict.insert sessionId { session | clientId = Just clientId })
@@ -242,7 +246,6 @@ updateFromFrontend sessionId clientId msg model =
                                             )
 
         NamePlayer name ->
-            -- TODO: clean this function up
             case Sessions.getPlayerIdAndLobbyId sessionId model.sessions of
                 Nothing ->
                     noOp
