@@ -4,6 +4,7 @@ import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Nav
 import Dice exposing (..)
 import Dict
+import Dict.Extra
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -43,11 +44,45 @@ init url key =
     )
 
 
+createMainMenuUpdate : Model -> (MainMenuState -> ( MainMenuState, Cmd FrontendMsg )) -> ( Model, Cmd FrontendMsg )
+createMainMenuUpdate model updateFn =
+    case model.state of
+        MainMenu mainMenuState ->
+            let
+                ( newMainMenuState, cmd ) =
+                    updateFn mainMenuState
+            in
+            ( { model | state = MainMenu newMainMenuState }, cmd )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+createInGameUpdate : Model -> (InGameState -> ( InGameState, Cmd FrontendMsg )) -> ( Model, Cmd FrontendMsg )
+createInGameUpdate model updateFn =
+    case model.state of
+        InGame inGameState ->
+            let
+                ( newInGameState, cmd ) =
+                    updateFn inGameState
+            in
+            ( { model | state = InGame newInGameState }, cmd )
+
+        _ ->
+            ( model, Cmd.none )
+
+
 update : FrontendMsg -> Model -> ( Model, Cmd FrontendMsg )
 update msg model =
     let
         noOp =
             ( model, Cmd.none )
+
+        updateMainMenu =
+            createMainMenuUpdate model
+
+        updateInGame =
+            createInGameUpdate model
     in
     case msg of
         UrlClicked urlRequest ->
@@ -69,81 +104,61 @@ update msg model =
             noOp
 
         HandleJoinCodeInput newJoinCode ->
-            case model.state of
-                MainMenu mainMenuState ->
-                    ( { model
-                        | state = MainMenu { mainMenuState | joinCode = newJoinCode, joinCodeIsInvalid = False }
+            updateMainMenu
+                (\mainMenuState ->
+                    ( { mainMenuState
+                        | joinCode = newJoinCode
+                        , joinCodeIsInvalid = False
                       }
                     , Cmd.none
                     )
-
-                _ ->
-                    noOp
+                )
 
         HandleJoinCodeSubmit ->
-            case model.state of
-                MainMenu mainMenuState ->
-                    ( { model
-                        | state = MainMenu { mainMenuState | joinCodeIsInvalid = False, formSubmitted = True }
-                      }
+            updateMainMenu
+                (\mainMenuState ->
+                    ( { mainMenuState | joinCodeIsInvalid = False, formSubmitted = True }
                     , Lamdera.sendToBackend (JoinGame mainMenuState.joinCode)
                     )
-
-                _ ->
-                    noOp
+                )
 
         HandleCreateGameButtonClick ->
-            case model.state of
-                MainMenu mainMenuState ->
-                    ( { model
-                        | state = MainMenu { mainMenuState | joinCode = "", joinCodeIsInvalid = False, formSubmitted = True }
-                      }
+            updateMainMenu
+                (\mainMenuState ->
+                    ( { mainMenuState | joinCode = "", joinCodeIsInvalid = False, formSubmitted = True }
                     , Lamdera.sendToBackend CreateLobby
                     )
-
-                _ ->
-                    noOp
+                )
 
         HandleNameInput newName ->
-            case model.state of
-                InGame inGameState ->
-                    Debug.todo "Implement"
-
-                _ ->
-                    noOp
+            updateInGame
+                (\inGameState ->
+                    ( { inGameState | nameInput = newName }, Cmd.none )
+                )
 
         HandleNameSubmit ->
-            case model.state of
-                InGame inGameState ->
-                    Debug.todo "Implement"
-
-                _ ->
-                    noOp
+            updateInGame
+                (\inGameState ->
+                    ( inGameState, Lamdera.sendToBackend (NamePlayer inGameState.nameInput) )
+                )
 
         HandleStartGameClick ->
-            case model.state of
-                InGame { lobby } ->
-                    -- TODO: disable start game button?
-                    ( model, Lamdera.sendToBackend (StartGame lobby.id) )
-
-                _ ->
-                    noOp
+            updateInGame
+                (\inGameState ->
+                    ( inGameState, Lamdera.sendToBackend (StartGame inGameState.lobby.id) )
+                )
 
         HandleEndGameClick ->
-            case model.state of
-                InGame { lobby } ->
-                    ( model, Lamdera.sendToBackend (EndGame lobby.id) )
-
-                _ ->
-                    noOp
+            updateInGame
+                (\inGameState ->
+                    ( inGameState, Lamdera.sendToBackend (EndGame inGameState.lobby.id) )
+                )
 
         HandleRoll ->
-            case model.state of
-                InGame { lobby } ->
-                    ( model, Lamdera.sendToBackend (UpdateGameWithRoll lobby.id) )
-
-                _ ->
-                    noOp
+            updateInGame
+                (\inGameState ->
+                    ( inGameState, Lamdera.sendToBackend (UpdateGameWithRoll inGameState.lobby.id) )
+                )
 
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
@@ -151,6 +166,12 @@ updateFromBackend msg model =
     let
         noOp =
             ( model, Cmd.none )
+
+        updateMainMenu =
+            createMainMenuUpdate model
+
+        updateInGame =
+            createInGameUpdate model
     in
     case msg of
         NoOpToFrontend ->
@@ -159,22 +180,17 @@ updateFromBackend msg model =
             )
 
         GoToMainMenu playerId ->
-            case model.state of
-                Unconnected ->
-                    ( { model
-                        | state =
-                            MainMenu
-                                { id = playerId
-                                , joinCode = "JKLM"
-                                , joinCodeIsInvalid = False
-                                , formSubmitted = False
-                                }
-                      }
-                    , Cmd.none
-                    )
-
-                _ ->
-                    noOp
+            ( { model
+                | state =
+                    MainMenu
+                        { id = playerId
+                        , joinCode = "JKLM"
+                        , joinCodeIsInvalid = False
+                        , formSubmitted = False
+                        }
+              }
+            , Cmd.none
+            )
 
         GoToInGame playerId lobby playerData ->
             ( { model
@@ -183,50 +199,38 @@ updateFromBackend msg model =
                         { id = playerId
                         , lobby = lobby
                         , playerData = playerData
+                        , nameInput = "Joe"
                         }
               }
             , Cmd.none
             )
 
         UpdateLobby newLobby ->
-            case model.state of
-                InGame inGameState ->
-                    ( { model
-                        | state =
-                            InGame
-                                { inGameState
-                                    | lobby = newLobby
-                                }
-                      }
-                    , Cmd.none
-                    )
-
-                _ ->
-                    noOp
+            updateInGame
+                (\inGameState ->
+                    ( { inGameState | lobby = newLobby }, Cmd.none )
+                )
 
         JoinGameFailed ->
-            case model.state of
-                MainMenu mainMenuState ->
-                    Debug.todo "Implement"
-
-                _ ->
-                    noOp
-
-        UpdatePlayerData newPlayerData ->
-            case model.state of
-                InGame inGameState ->
-                    ( { model
-                        | state =
-                            InGame
-                                { inGameState
-                                    | playerData = newPlayerData
-                                }
+            updateMainMenu
+                (\mainMenuState ->
+                    ( { mainMenuState
+                        | joinCodeIsInvalid = True
+                        , formSubmitted = False
                       }
                     , Cmd.none
                     )
+                )
 
-                _ ->
-                    noOp
+        UpdatePlayerData newPlayerData ->
+            updateInGame
+                (\inGameState ->
+                    ( { inGameState
+                        | playerData = newPlayerData
+                      }
+                    , Cmd.none
+                    )
+                )
 
 
 renderDice : Dice -> String
@@ -345,38 +349,40 @@ view model =
                                     -- Trying to connect to new or existing game
                                     text "Connecting to game"
 
-                            -- NamingPlayer _ name gameState ->
-                            --     div [ class "flex flex-col justify-center space-y-4" ]
-                            --         [ div [ class "inline-block" ] [ text "My name is" ]
-                            --         , Html.form [ onSubmit HandleNameSubmit, class "flex flex-col items-center space-y-4 form-control" ]
-                            --             [ div [] [ input [ onInput HandleNameInput, value name, class "input input-bordered input-primary" ] [] ]
-                            --             , div [] [ button [ type_ "submit", class "btn btn-primary" ] [ text "Submit" ] ]
-                            --             ]
-                            --         ]
                             -- ConfirmingName _ _ ->
                             --     text "Entering lobby"
-                            InGame { id, lobby, playerData } ->
+                            InGame { id, lobby, playerData, nameInput } ->
                                 case lobby.gameWrapper of
                                     Lobby.NotStarted playerIds ->
-                                        div [ class "flex flex-col justify-center space-y-4" ]
-                                            [ div [ class "text-lg" ] [ text "Game not started" ]
-                                            , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
-                                            , div [] [ text "Players:" ]
-                                            , div []
-                                                (playerIds
-                                                    |> List.map
-                                                        (\playerId ->
-                                                            let
-                                                                displayName =
-                                                                    Dict.get playerId playerData
-                                                                        |> Maybe.andThen .displayName
-                                                                        |> Maybe.withDefault "Anonymous"
-                                                            in
-                                                            div [] [ text displayName ]
-                                                        )
-                                                )
-                                            , div [] [ button [ onClick HandleStartGameClick, class "btn btn-primary" ] [ text "Start game" ] ]
-                                            ]
+                                        if Dict.member id playerData then
+                                            div [ class "flex flex-col justify-center space-y-4" ]
+                                                [ div [ class "text-lg" ] [ text "Game not started" ]
+                                                , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
+                                                , div [] [ text "Players:" ]
+                                                , div []
+                                                    (playerIds
+                                                        |> List.map
+                                                            (\playerId ->
+                                                                let
+                                                                    displayName =
+                                                                        Dict.get playerId playerData
+                                                                            |> Maybe.andThen .displayName
+                                                                            |> Maybe.withDefault "Anonymous"
+                                                                in
+                                                                div [] [ text displayName ]
+                                                            )
+                                                    )
+                                                , div [] [ button [ onClick HandleStartGameClick, class "btn btn-primary" ] [ text "Start game" ] ]
+                                                ]
+
+                                        else
+                                            div [ class "flex flex-col justify-center space-y-4" ]
+                                                [ div [ class "inline-block" ] [ text "My name is" ]
+                                                , Html.form [ onSubmit HandleNameSubmit, class "flex flex-col items-center space-y-4 form-control" ]
+                                                    [ div [] [ input [ onInput HandleNameInput, value nameInput, class "input input-bordered input-primary" ] [] ]
+                                                    , div [] [ button [ type_ "submit", class "btn btn-primary" ] [ text "Submit" ] ]
+                                                    ]
+                                                ]
 
                                     Lobby.InProgress shipGame ->
                                         renderShipGame id shipGame

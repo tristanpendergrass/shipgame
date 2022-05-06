@@ -16,10 +16,18 @@ type alias PlayerData =
     Dict PlayerId Player
 
 
+type alias MainMenuState =
+    { id : PlayerId, joinCode : String, joinCodeIsInvalid : Bool, formSubmitted : Bool }
+
+
+type alias InGameState =
+    { id : PlayerId, lobby : Lobby, playerData : PlayerData, nameInput : String }
+
+
 type FrontendState
     = Unconnected
-    | MainMenu { id : PlayerId, joinCode : String, joinCodeIsInvalid : Bool, formSubmitted : Bool }
-    | InGame { id : PlayerId, lobby : Lobby, playerData : PlayerData }
+    | MainMenu MainMenuState
+    | InGame InGameState
 
 
 type alias FrontendModel =

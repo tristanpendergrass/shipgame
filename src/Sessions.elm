@@ -46,6 +46,11 @@ updateClientId sessionId clientId =
     Dict.update sessionId (Maybe.map (\session -> { session | clientId = Just clientId }))
 
 
+updateLobbyId : SessionId -> LobbyId -> Sessions -> Sessions
+updateLobbyId sessionId lobbyId =
+    Dict.update sessionId (Maybe.map (\session -> { session | lobbyId = Just lobbyId }))
+
+
 clientIdForPlayerId : Sessions -> PlayerId -> Maybe ClientId
 clientIdForPlayerId sessions playerId =
     sessions
@@ -59,12 +64,12 @@ getPlayerIdAndLobbyId : SessionId -> Sessions -> Maybe ( PlayerId, LobbyId )
 getPlayerIdAndLobbyId sessionId sessions =
     case Dict.get sessionId sessions of
         Nothing ->
-            Nothing
+            Debug.log "no session" Nothing
 
         Just session ->
-            case session.lobbyId of
+            case (Debug.log "session" session).lobbyId of
                 Nothing ->
-                    Nothing
+                    Debug.log "no lobbyid" Nothing
 
                 Just lobbyId ->
                     Just ( session.playerId, lobbyId )

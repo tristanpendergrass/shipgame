@@ -58,6 +58,27 @@ setPlayerData playerData model =
     { model | playerData = playerData }
 
 
+sendLobbyPlayerData : BackendModel -> Lobby -> List (Cmd BackendMsg)
+sendLobbyPlayerData backendModel lobby =
+    lobby
+        |> Lobby.getPlayerIds
+        |> List.filterMap (Sessions.clientIdForPlayerId backendModel.sessions)
+        |> List.map
+            (\clientIdToUpdate ->
+                Lamdera.sendToFrontend clientIdToUpdate (UpdatePlayerData backendModel.playerData)
+            )
+
+
+scopePlayerDataToLobby : Lobby -> PlayerData -> PlayerData
+scopePlayerDataToLobby lobby playerData =
+    let
+        playerIds =
+            Lobby.getPlayerIds lobby
+    in
+    playerData
+        |> Dict.filter (\playerId _ -> List.member playerId playerIds)
+
+
 update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
 update msg model =
     let
@@ -83,10 +104,15 @@ update msg model =
                     )
 
                 Just session ->
+                    -- User is reconnecting
                     let
                         maybeLobby =
                             session.lobbyId
                                 |> Maybe.andThen (\lobbyId -> Dict.get lobbyId model.lobbies)
+
+                        newModel =
+                            model
+                                |> updateSessions (Dict.insert sessionId { session | clientId = Just clientId })
 
                         messageToFrontend =
                             case maybeLobby of
@@ -94,15 +120,18 @@ update msg model =
                                     Lamdera.sendToFrontend clientId (GoToMainMenu session.playerId)
 
                                 Just lobby ->
-                                    -- TODO: notify other players in lobby
+                                    let
+                                        playerData =
+                                            model.playerData
+                                                |> scopePlayerDataToLobby lobby
+                                    in
                                     Cmd.batch <|
                                         List.concat
-                                            [ sendLobbyPlayerDataUpdate newPlayerData lobby
-                                            , [ Lamdera.sendToFrontend clientId (AssignPlayerIdAndLobby session.playerId lobby) ]
+                                            [ sendLobbyPlayerData newModel lobby
+                                            , [ Lamdera.sendToFrontend clientId (GoToInGame session.playerId lobby playerData) ]
                                             ]
                     in
-                    ( model
-                        |> updateSessions (Dict.insert sessionId { session | clientId = Just clientId })
+                    ( newModel
                     , messageToFrontend
                     )
 
@@ -134,7 +163,7 @@ updateFromFrontend sessionId clientId msg model =
         noOp =
             ( model, Cmd.none )
 
-        sendLobbyUpdateToFrontend : Lobby -> Cmd BackendMsg
+        sendLobbyUpdateToFrontend : Lobby -> List (Cmd BackendMsg)
         sendLobbyUpdateToFrontend newLobby =
             let
                 playerIds =
@@ -149,7 +178,6 @@ updateFromFrontend sessionId clientId msg model =
                     (\id ->
                         Lamdera.sendToFrontend id (UpdateLobby newLobby)
                     )
-                |> Cmd.batch
 
         sendLobbyPlayerDataUpdate : PlayerData -> Lobby -> List (Cmd BackendMsg)
         sendLobbyPlayerDataUpdate playerData lobby =
@@ -189,6 +217,13 @@ updateFromFrontend sessionId clientId msg model =
 
                         lobby =
                             Lobby.create model.lobbyIdNonce joinCode playerId seed3
+
+                        playerData =
+                            model.playerData
+                                |> scopePlayerDataToLobby lobby
+
+                        sessions =
+                            Sessions.updateLobbyId sessionId lobby.id model.sessions
                     in
                     ( { model
                         | lobbies =
@@ -196,8 +231,14 @@ updateFromFrontend sessionId clientId msg model =
                                 |> Dict.insert lobby.id lobby
                         , lobbyIdNonce = model.lobbyIdNonce + 1
                         , seed = seed4
+                        , sessions = sessions
                       }
-                    , sendLobbyUpdateToFrontend lobby
+                    , Cmd.batch
+                        (List.concat
+                            [ sendLobbyUpdateToFrontend lobby
+                            , [ Lamdera.sendToFrontend clientId (GoToInGame playerId lobby playerData) ]
+                            ]
+                        )
                     )
 
         JoinGame joinCode ->
@@ -242,13 +283,13 @@ updateFromFrontend sessionId clientId msg model =
 
                                         Just newLobby ->
                                             ( { model | lobbies = model.lobbies |> Dict.insert lobbyId newLobby }
-                                            , sendLobbyUpdateToFrontend newLobby
+                                            , Cmd.batch <| sendLobbyUpdateToFrontend newLobby
                                             )
 
         NamePlayer name ->
             case Sessions.getPlayerIdAndLobbyId sessionId model.sessions of
                 Nothing ->
-                    noOp
+                    Debug.log "No player" noOp
 
                 Just ( playerId, lobbyId ) ->
                     let
@@ -262,10 +303,10 @@ updateFromFrontend sessionId clientId msg model =
                         backendMsg =
                             case maybeLobby of
                                 Nothing ->
-                                    Cmd.none
+                                    Debug.log "No lobby" Cmd.none
 
                                 Just lobby ->
-                                    Cmd.batch <| sendLobbyPlayerDataUpdate newPlayerData lobby
+                                    Cmd.batch <| sendLobbyPlayerDataUpdate (Debug.log "newPlayerData" newPlayerData) lobby
                     in
                     ( model
                         |> setPlayerData newPlayerData
@@ -280,7 +321,9 @@ updateFromFrontend sessionId clientId msg model =
                 Just lobby ->
                     case Lobby.startGame lobby of
                         Ok newLobby ->
-                            ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }, sendLobbyUpdateToFrontend newLobby )
+                            ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }
+                            , Cmd.batch <| sendLobbyUpdateToFrontend newLobby
+                            )
 
                         Err _ ->
                             noOp
@@ -295,7 +338,9 @@ updateFromFrontend sessionId clientId msg model =
                         newLobby =
                             Lobby.endGame lobby
                     in
-                    ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }, sendLobbyUpdateToFrontend newLobby )
+                    ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }
+                    , Cmd.batch <| sendLobbyUpdateToFrontend newLobby
+                    )
 
         UpdateGame lobbyId shipGameMsg ->
             case Dict.get lobbyId model.lobbies of
@@ -307,7 +352,9 @@ updateFromFrontend sessionId clientId msg model =
                         newLobby =
                             Lobby.updateGame shipGameMsg lobby
                     in
-                    ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }, sendLobbyUpdateToFrontend newLobby )
+                    ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }
+                    , Cmd.batch <| sendLobbyUpdateToFrontend newLobby
+                    )
 
         UpdateGameWithRoll lobbyId ->
             case Dict.get lobbyId model.lobbies of
@@ -333,7 +380,7 @@ updateFromFrontend sessionId clientId msg model =
                         | lobbies = Dict.insert lobbyId newLobby model.lobbies
                         , seed = newSeed
                       }
-                    , sendLobbyUpdateToFrontend newLobby
+                    , Cmd.batch <| sendLobbyUpdateToFrontend newLobby
                     )
 
 
