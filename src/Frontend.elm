@@ -5,6 +5,7 @@ import Browser.Navigation as Nav
 import Dice exposing (..)
 import Dict
 import Dict.Extra
+import FrontendDev
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -24,15 +25,19 @@ type alias Model =
 
 
 app =
-    Lamdera.frontend
-        { init = init
-        , onUrlRequest = UrlClicked
-        , onUrlChange = UrlChanged
-        , update = update
-        , updateFromBackend = updateFromBackend
-        , subscriptions = \m -> Sub.none
-        , view = view
-        }
+    if isDev then
+        FrontendDev.app
+
+    else
+        Lamdera.frontend
+            { init = init
+            , onUrlRequest = UrlClicked
+            , onUrlChange = UrlChanged
+            , update = update
+            , updateFromBackend = updateFromBackend
+            , subscriptions = \m -> Sub.none
+            , view = view
+            }
 
 
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
@@ -268,16 +273,16 @@ renderShipGame playerId { round, players, dice } =
         currentPlayer =
             SelectionList.getSelected players
     in
-    div []
+    div [ class "flex flex-col w-64 items-center space-y-4" ]
         -- Print round
         -- Dice
         -- Status of four players
         -- Player Name
         -- Current Ship
         -- Score
-        [ div [] [ text <| "Round: " ++ String.fromInt round ]
-        , div [] [ text <| "Dice: " ++ renderDice dice ]
-        , div [] [ button [ disabled <| not (currentPlayer.id == playerId), onClick HandleRoll ] [ text "Roll" ] ]
+        [ div [ class "text-xl" ] [ text <| "Round: " ++ String.fromInt round ]
+        , div [ class "text-2xl" ] [ text <| "Dice: " ++ renderDice dice ]
+        , div [] [ button [ class "btn", disabled <| not (currentPlayer.id == playerId), onClick HandleRoll ] [ text "Roll" ] ]
         , div [ class "flex" ]
             (players
                 |> SelectionList.toTupleList

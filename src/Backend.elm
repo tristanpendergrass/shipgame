@@ -35,7 +35,7 @@ init =
       -- TODO: set seed using random process somehow
       , seed = Random.initialSeed 0
       , playerIdNonce = 0
-      , lobbyIdNonce = 0
+      , lobbyIdNonce = 1
       , sessions = Sessions.create
       , playerData = Dict.empty
       }

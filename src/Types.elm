@@ -12,6 +12,11 @@ import ShipGame
 import Url exposing (Url)
 
 
+isDev : Bool
+isDev =
+    True
+
+
 type alias PlayerData =
     Dict PlayerId Player
 
