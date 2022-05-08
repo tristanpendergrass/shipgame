@@ -4,12 +4,14 @@ import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Nav
 import Dice exposing (..)
 import Dict
+import Evergreen.V2.Lobby exposing (Lobby)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Lamdera
 import Lobby exposing (GameWrapper(..), Lobby)
 import Player exposing (Player, PlayerId)
+import Random
 import SelectionList exposing (SelectionList)
 import ShipGame exposing (..)
 import Types exposing (..)
@@ -34,8 +36,39 @@ app =
 
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
+    let
+        initialLobby =
+            Lobby.create 0 "JKLM" 0 (Random.initialSeed 0)
+
+        lobbyWithPlayers =
+            initialLobby
+                |> Lobby.addPlayer 1
+                |> Maybe.andThen (Lobby.addPlayer 2)
+                |> Maybe.andThen (Lobby.addPlayer 3)
+                |> Maybe.withDefault initialLobby
+
+        lobbyWithGame =
+            lobbyWithPlayers
+                |> Lobby.startGame
+                |> Result.withDefault initialLobby
+
+        playerData : PlayerData
+        playerData =
+            Dict.fromList
+                [ ( 0, { id = 0, displayName = Just "Player 1" } )
+                , ( 1, { id = 1, displayName = Just "Player 2" } )
+                , ( 2, { id = 2, displayName = Just "Player 3" } )
+                , ( 3, { id = 3, displayName = Just "Player 4" } )
+                ]
+    in
     ( { key = key
-      , state = Unconnected
+      , state =
+            InGame
+                { id = 0
+                , lobby = lobbyWithGame
+                , playerData = playerData
+                , nameInput = ""
+                }
       }
     , Cmd.none
     )

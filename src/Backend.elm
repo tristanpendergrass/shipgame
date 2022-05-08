@@ -289,7 +289,7 @@ updateFromFrontend sessionId clientId msg model =
         NamePlayer name ->
             case Sessions.getPlayerIdAndLobbyId sessionId model.sessions of
                 Nothing ->
-                    Debug.log "No player" noOp
+                    noOp
 
                 Just ( playerId, lobbyId ) ->
                     let
@@ -303,10 +303,10 @@ updateFromFrontend sessionId clientId msg model =
                         backendMsg =
                             case maybeLobby of
                                 Nothing ->
-                                    Debug.log "No lobby" Cmd.none
+                                    Cmd.none
 
                                 Just lobby ->
-                                    Cmd.batch <| sendLobbyPlayerDataUpdate (Debug.log "newPlayerData" newPlayerData) lobby
+                                    Cmd.batch <| sendLobbyPlayerDataUpdate newPlayerData lobby
                     in
                     ( model
                         |> setPlayerData newPlayerData
