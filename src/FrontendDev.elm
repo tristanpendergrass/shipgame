@@ -38,7 +38,7 @@ init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     let
         initialLobby =
-            Lobby.create 0 "JKLM" 0 (Random.initialSeed 0)
+            Lobby.create 0 "JKLM" 3 (Random.initialSeed 0)
 
         lobbyWithPlayers =
             initialLobby
@@ -63,12 +63,14 @@ init url key =
     in
     ( { key = key
       , state =
-            InGame
-                { id = 0
-                , lobby = lobbyWithGame
-                , playerData = playerData
-                , nameInput = ""
-                }
+            Debug.log "Initial state"
+                (InGame
+                    { id = 3
+                    , lobby = lobbyWithGame
+                    , playerData = playerData
+                    , nameInput = ""
+                    }
+                )
       }
     , Cmd.none
     )
@@ -128,7 +130,7 @@ renderShipGame playerId { round, players, dice } =
         -- Score
         [ div [ class "text-xl" ] [ text <| "Round: " ++ String.fromInt round ]
         , div [ class "text-2xl" ] [ text <| "Dice: " ++ renderDice dice ]
-        , div [] [ button [ class "btn", disabled <| not (currentPlayer.id == playerId), onClick HandleRoll ] [ text "Roll" ] ]
+        , div [] [ button [ class "btn", disabled <| not (Debug.log "curent player id" currentPlayer.id == Debug.log "plkayer Id" playerId), onClick HandleRoll ] [ text "Roll" ] ]
         , div [ class "flex" ]
             (players
                 |> SelectionList.toTupleList
