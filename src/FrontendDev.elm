@@ -115,8 +115,31 @@ renderDice dice =
             "Rolled thrice (" ++ String.join ", " (renderValues diceValues) ++ ")"
 
 
-renderShipGame : PlayerId -> ShipGame -> Html FrontendMsg
-renderShipGame playerId { round, players, dice } =
+renderPlayer : InGameState -> ShipGamePlayer -> Bool -> Html FrontendMsg
+renderPlayer inGameState player isSelected =
+    let
+        displayName =
+            inGameState.playerData
+                |> Dict.get player.id
+                |> Maybe.andThen (\playerData -> playerData.displayName)
+                |> Maybe.withDefault "Anonymous"
+    in
+    div [ class "flex flex-col items-center space-y-4" ]
+        [ div
+            [ class "text-lg"
+            , class <|
+                if isSelected then
+                    "underline"
+
+                else
+                    ""
+            ]
+            [ text displayName ]
+        ]
+
+
+renderShipGame : InGameState -> PlayerId -> ShipGame -> Html FrontendMsg
+renderShipGame inGameState playerId { round, players, dice } =
     let
         currentPlayer =
             SelectionList.getSelected players
@@ -136,16 +159,7 @@ renderShipGame playerId { round, players, dice } =
                 |> SelectionList.toTupleList
                 |> List.map
                     (\( player, selected ) ->
-                        div
-                            [ class "w-64 h-64 border border-black rounded"
-                            , class <|
-                                if selected then
-                                    "border-red-500"
-
-                                else
-                                    ""
-                            ]
-                            []
+                        renderPlayer inGameState player selected
                     )
             )
         ]
@@ -204,7 +218,11 @@ view model =
 
                             -- ConfirmingName _ _ ->
                             --     text "Entering lobby"
-                            InGame { id, lobby, playerData, nameInput } ->
+                            InGame inGameState ->
+                                let
+                                    { lobby, id, playerData, nameInput } =
+                                        inGameState
+                                in
                                 case lobby.gameWrapper of
                                     Lobby.NotStarted playerIds ->
                                         if Dict.member id playerData then
@@ -238,7 +256,7 @@ view model =
                                                 ]
 
                                     Lobby.InProgress shipGame ->
-                                        renderShipGame id shipGame
+                                        renderShipGame inGameState id shipGame
                         ]
                     ]
                ]
