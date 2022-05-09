@@ -42,9 +42,9 @@ init url key =
 
         lobbyWithPlayers =
             initialLobby
-                |> Lobby.addPlayer 1
-                |> Maybe.andThen (Lobby.addPlayer 2)
-                |> Maybe.andThen (Lobby.addPlayer 3)
+                |> Lobby.addPlayer 2
+                |> Maybe.andThen (Lobby.addPlayer 1)
+                |> Maybe.andThen (Lobby.addPlayer 0)
                 |> Maybe.withDefault initialLobby
 
         lobbyWithGame =
@@ -65,7 +65,7 @@ init url key =
       , state =
             Debug.log "Initial state"
                 (InGame
-                    { id = 3
+                    { id = 0
                     , lobby = lobbyWithGame
                     , playerData = playerData
                     , nameInput = ""
@@ -144,17 +144,11 @@ renderShipGame inGameState playerId { round, players, dice } =
         currentPlayer =
             SelectionList.getSelected players
     in
-    div [ class "flex flex-col w-64 items-center space-y-4" ]
-        -- Print round
-        -- Dice
-        -- Status of four players
-        -- Player Name
-        -- Current Ship
-        -- Score
+    div [ class "flex flex-col w-1/2 items-center justify-start space-y-16" ]
         [ div [ class "text-xl" ] [ text <| "Round: " ++ String.fromInt round ]
         , div [ class "text-2xl" ] [ text <| "Dice: " ++ renderDice dice ]
         , div [] [ button [ class "btn", disabled <| not (Debug.log "curent player id" currentPlayer.id == Debug.log "plkayer Id" playerId), onClick HandleRoll ] [ text "Roll" ] ]
-        , div [ class "flex" ]
+        , div [ class "w-full flex justify-center justify-between" ]
             (players
                 |> SelectionList.toTupleList
                 |> List.map
@@ -177,87 +171,85 @@ view model =
     { title = "Shipgame"
     , body =
         css
-            ++ [ div [ class "w-screen h-screen flex flex-col justify-center items-center" ]
-                    [ div []
-                        [ case model.state of
-                            Unconnected ->
-                                div [] [ text "Connecting to server..." ]
+            ++ [ div [ class "w-screen h-screen flex flex-col items-center py-16" ]
+                    [ case model.state of
+                        Unconnected ->
+                            div [] [ text "Connecting to server..." ]
 
-                            MainMenu { joinCode, joinCodeIsInvalid, formSubmitted } ->
-                                if not formSubmitted then
-                                    let
-                                        textClasses =
-                                            "font-red text-4xl"
-                                    in
-                                    div [ class "flex flex-col justify-center space-y-4" ]
-                                        [ h1 [ class textClasses ] [ text "Join a game" ]
-                                        , Html.form [ onSubmit HandleJoinCodeSubmit, class "flex flex-col items-center space-y-4" ]
-                                            [ div [ class "form-control" ]
-                                                [ label [ class "label", for "join-code-input" ] [ text "Join code" ]
-                                                , input [ onInput HandleJoinCodeInput, value joinCode, class "input input-bordered input-primary", id "join-code-input" ] []
-                                                , div
-                                                    [ class "text-red-500"
-                                                    , class
-                                                        (if joinCodeIsInvalid then
-                                                            ""
-
-                                                         else
-                                                            "invisible"
-                                                        )
-                                                    ]
-                                                    [ text "Join code was incorrect" ]
-                                                ]
-                                            , div [] [ button [ class "btn btn-primary", type_ "submit" ] [ text "Join" ] ]
-                                            ]
-                                        , button [ onClick HandleCreateGameButtonClick, class "btn btn-secondary" ] [ text "Create game" ]
-                                        ]
-
-                                else
-                                    -- Trying to connect to new or existing game
-                                    text "Connecting to game"
-
-                            -- ConfirmingName _ _ ->
-                            --     text "Entering lobby"
-                            InGame inGameState ->
+                        MainMenu { joinCode, joinCodeIsInvalid, formSubmitted } ->
+                            if not formSubmitted then
                                 let
-                                    { lobby, id, playerData, nameInput } =
-                                        inGameState
+                                    textClasses =
+                                        "font-red text-4xl"
                                 in
-                                case lobby.gameWrapper of
-                                    Lobby.NotStarted playerIds ->
-                                        if Dict.member id playerData then
-                                            div [ class "flex flex-col justify-center space-y-4" ]
-                                                [ div [ class "text-lg" ] [ text "Game not started" ]
-                                                , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
-                                                , div [] [ text "Players:" ]
-                                                , div []
-                                                    (playerIds
-                                                        |> List.map
-                                                            (\playerId ->
-                                                                let
-                                                                    displayName =
-                                                                        Dict.get playerId playerData
-                                                                            |> Maybe.andThen .displayName
-                                                                            |> Maybe.withDefault "Anonymous"
-                                                                in
-                                                                div [] [ text displayName ]
-                                                            )
+                                div [ class "flex flex-col justify-center space-y-4" ]
+                                    [ h1 [ class textClasses ] [ text "Join a game" ]
+                                    , Html.form [ onSubmit HandleJoinCodeSubmit, class "flex flex-col items-center space-y-4" ]
+                                        [ div [ class "form-control" ]
+                                            [ label [ class "label", for "join-code-input" ] [ text "Join code" ]
+                                            , input [ onInput HandleJoinCodeInput, value joinCode, class "input input-bordered input-primary", id "join-code-input" ] []
+                                            , div
+                                                [ class "text-red-500"
+                                                , class
+                                                    (if joinCodeIsInvalid then
+                                                        ""
+
+                                                     else
+                                                        "invisible"
                                                     )
-                                                , div [] [ button [ onClick HandleStartGameClick, class "btn btn-primary" ] [ text "Start game" ] ]
                                                 ]
+                                                [ text "Join code was incorrect" ]
+                                            ]
+                                        , div [] [ button [ class "btn btn-primary", type_ "submit" ] [ text "Join" ] ]
+                                        ]
+                                    , button [ onClick HandleCreateGameButtonClick, class "btn btn-secondary" ] [ text "Create game" ]
+                                    ]
 
-                                        else
-                                            div [ class "flex flex-col justify-center space-y-4" ]
-                                                [ div [ class "inline-block" ] [ text "My name is" ]
-                                                , Html.form [ onSubmit HandleNameSubmit, class "flex flex-col items-center space-y-4 form-control" ]
-                                                    [ div [] [ input [ onInput HandleNameInput, value nameInput, class "input input-bordered input-primary" ] [] ]
-                                                    , div [] [ button [ type_ "submit", class "btn btn-primary" ] [ text "Submit" ] ]
-                                                    ]
+                            else
+                                -- Trying to connect to new or existing game
+                                text "Connecting to game"
+
+                        -- ConfirmingName _ _ ->
+                        --     text "Entering lobby"
+                        InGame inGameState ->
+                            let
+                                { lobby, id, playerData, nameInput } =
+                                    inGameState
+                            in
+                            case lobby.gameWrapper of
+                                Lobby.NotStarted playerIds ->
+                                    if Dict.member id playerData then
+                                        div [ class "flex flex-col justify-center space-y-4" ]
+                                            [ div [ class "text-lg" ] [ text "Game not started" ]
+                                            , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
+                                            , div [] [ text "Players:" ]
+                                            , div []
+                                                (playerIds
+                                                    |> List.map
+                                                        (\playerId ->
+                                                            let
+                                                                displayName =
+                                                                    Dict.get playerId playerData
+                                                                        |> Maybe.andThen .displayName
+                                                                        |> Maybe.withDefault "Anonymous"
+                                                            in
+                                                            div [] [ text displayName ]
+                                                        )
+                                                )
+                                            , div [] [ button [ onClick HandleStartGameClick, class "btn btn-primary" ] [ text "Start game" ] ]
+                                            ]
+
+                                    else
+                                        div [ class "flex flex-col justify-center space-y-4" ]
+                                            [ div [ class "inline-block" ] [ text "My name is" ]
+                                            , Html.form [ onSubmit HandleNameSubmit, class "flex flex-col items-center space-y-4 form-control" ]
+                                                [ div [] [ input [ onInput HandleNameInput, value nameInput, class "input input-bordered input-primary" ] [] ]
+                                                , div [] [ button [ type_ "submit", class "btn btn-primary" ] [ text "Submit" ] ]
                                                 ]
+                                            ]
 
-                                    Lobby.InProgress shipGame ->
-                                        renderShipGame inGameState id shipGame
-                        ]
+                                Lobby.InProgress shipGame ->
+                                    renderShipGame inGameState id shipGame
                     ]
                ]
     }
