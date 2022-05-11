@@ -138,25 +138,56 @@ renderPlayer inGameState player isSelected =
         ]
 
 
-renderShipGame : InGameState -> PlayerId -> ShipGame -> Html FrontendMsg
-renderShipGame inGameState playerId { round, players, dice } =
+renderCenterColumn : InGameState -> ShipGame -> Html FrontendMsg
+renderCenterColumn inGameState game =
     let
         currentPlayer =
-            SelectionList.getSelected players
+            SelectionList.getSelected game.players
+
+        currentPlayerName =
+            Dict.get currentPlayer.id inGameState.playerData
+                |> Maybe.andThen .displayName
+                |> Maybe.withDefault "Anonymous"
+
+        turnText =
+            if currentPlayer.id == inGameState.id then
+                "It's your turn"
+
+            else
+                "It's " ++ currentPlayerName ++ "'s turn"
     in
-    div [ class "flex flex-col w-1/2 items-center justify-start space-y-16" ]
-        [ div [ class "text-xl" ] [ text <| "Round: " ++ String.fromInt round ]
-        , div [ class "text-2xl" ] [ text <| "Dice: " ++ renderDice dice ]
-        , div [] [ button [ class "btn", disabled <| not (Debug.log "curent player id" currentPlayer.id == Debug.log "plkayer Id" playerId), onClick HandleRoll ] [ text "Roll" ] ]
-        , div [ class "w-full flex justify-center justify-between" ]
-            (players
-                |> SelectionList.toTupleList
-                |> List.map
-                    (\( player, selected ) ->
-                        renderPlayer inGameState player selected
-                    )
-            )
+    div [ class "flex flex-col h-full items-center space-y-8 p-8 text-gray-100 text-2xl" ]
+        [ div [] [ text turnText ]
         ]
+
+
+renderShipGame : InGameState -> ShipGame -> Html FrontendMsg
+renderShipGame inGameState game =
+    let
+        currentPlayer =
+            SelectionList.getSelected game.players
+    in
+    div [ class "flex w-full h-full justify-center space-x-12" ]
+        [ div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
+        , div [ class "w-96 h-full bg-blue-900 rounded-lg" ] [ renderCenterColumn inGameState game ]
+        , div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
+        ]
+
+
+
+-- div [ class "flex flex-col w-1/2 items-center justify-start space-y-16" ]
+--     [ div [ class "text-xl" ] [ text <| "Round: " ++ String.fromInt round ]
+--     , div [ class "text-2xl" ] [ text <| "Dice: " ++ renderDice dice ]
+--     , div [] [ button [ class "btn", disabled <| not (Debug.log "curent player id" currentPlayer.id == Debug.log "plkayer Id" playerId), onClick HandleRoll ] [ text "Roll" ] ]
+--     , div [ class "w-full flex justify-center justify-between" ]
+--         (players
+--             |> SelectionList.toTupleList
+--             |> List.map
+--                 (\( player, selected ) ->
+--                     renderPlayer inGameState player selected
+--                 )
+--         )
+--     ]
 
 
 view : Model -> Browser.Document FrontendMsg
@@ -171,8 +202,9 @@ view model =
     { title = "Shipgame"
     , body =
         css
-            ++ [ div [ class "w-screen h-screen flex flex-col items-center py-16" ]
-                    [ case model.state of
+            ++ [ div [ class "w-screen h-screen flex flex-col items-center py-16 space-y-12 bg-blue-500" ]
+                    [ div [ class "text-green-200 font-bold text-9xl" ] [ text "Shipgame" ]
+                    , case model.state of
                         Unconnected ->
                             div [] [ text "Connecting to server..." ]
 
@@ -219,6 +251,7 @@ view model =
                             case lobby.gameWrapper of
                                 Lobby.NotStarted playerIds ->
                                     if Dict.member id playerData then
+                                        -- Show game
                                         div [ class "flex flex-col justify-center space-y-4" ]
                                             [ div [ class "text-lg" ] [ text "Game not started" ]
                                             , div [] [ text <| "Join Code: " ++ lobby.joinCode ]
@@ -240,6 +273,7 @@ view model =
                                             ]
 
                                     else
+                                        -- Show player naming screen
                                         div [ class "flex flex-col justify-center space-y-4" ]
                                             [ div [ class "inline-block" ] [ text "My name is" ]
                                             , Html.form [ onSubmit HandleNameSubmit, class "flex flex-col items-center space-y-4 form-control" ]
@@ -249,7 +283,7 @@ view model =
                                             ]
 
                                 Lobby.InProgress shipGame ->
-                                    renderShipGame inGameState id shipGame
+                                    renderShipGame inGameState shipGame
                     ]
                ]
     }
