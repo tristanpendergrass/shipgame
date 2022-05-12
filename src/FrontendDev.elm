@@ -22,6 +22,12 @@ type alias Model =
     FrontendModel
 
 
+type DiceDisplayMode
+    = DiceNotSelectable
+    | DiceNotSelected
+    | DiceSelected
+
+
 app =
     Lamdera.frontend
         { init = init
@@ -202,8 +208,17 @@ renderCenterColumn inGameState game =
             div [ class "text-gray-100 tooltip cursor-pointer", attribute "data-tip" tooltipText ] [ text <| String.fromInt currentDieRoll ++ "/3" ]
 
         rollButton =
+            let
+                rollText =
+                    case game.dice of
+                        Dice.NeverRolled ->
+                            "Roll"
+
+                        _ ->
+                            "Roll again"
+            in
             button
-                [ class "btn btn-primary"
+                [ class "btn btn-primary w-32"
                 , class <|
                     if youAreCurrentPlayer then
                         "visible"
@@ -211,10 +226,23 @@ renderCenterColumn inGameState game =
                     else
                         "invisible"
                 ]
-                [ text "Roll" ]
+                [ text rollText ]
 
-        die value =
-            div [ class "w-12 h-12 bg-gray-100 rounded text-gray-900 text-2xl leading-none shadow-lg font-bold flex justify-center items-center" ]
+        die : Int -> DiceDisplayMode -> Html FrontendMsg
+        die value displayMode =
+            div
+                [ class "flex justify-center items-center w-12 h-12 bg-gray-100 rounded shadow-lg cursor-pointer"
+                , class "text-gray-900 text-2xl leading-none font-bold"
+                , case displayMode of
+                    DiceNotSelectable ->
+                        class ""
+
+                    DiceNotSelected ->
+                        class "hover:border-4 hover:border-yellow-500/50"
+
+                    DiceSelected ->
+                        class "border-4 border-yellow-500"
+                ]
                 [ div [] [ text <| String.fromInt value ] ]
     in
     div [ class "flex flex-col items-center space-y-8 p-8 " ]
@@ -225,8 +253,8 @@ renderCenterColumn inGameState game =
             , div [ class "flex flex-col items-center space-y-12" ]
                 [ rollButton
                 , div [ class "flex flex-col w-full items-center space-y-4" ]
-                    [ div [ class "flex w-full justify-center space-x-4" ] [ die 1, die 2 ]
-                    , div [ class "flex w-full justify-center space-x-4" ] [ die 3, die 4, die 5 ]
+                    [ div [ class "flex w-full justify-center space-x-4" ] [ die 1 DiceSelected, die 2 DiceNotSelected ]
+                    , div [ class "flex w-full justify-center space-x-4" ] [ die 3 DiceNotSelected, die 4 DiceNotSelected, die 5 DiceNotSelected ]
                     ]
                 ]
             ]
@@ -280,7 +308,7 @@ view model =
                                                 [ class "text-red-500"
                                                 , class
                                                     (if joinCodeIsInvalid then
-                                                        ""
+                                                        "visible"
 
                                                      else
                                                         "invisible"
