@@ -144,20 +144,92 @@ renderCenterColumn inGameState game =
         currentPlayer =
             SelectionList.getSelected game.players
 
-        currentPlayerName =
-            Dict.get currentPlayer.id inGameState.playerData
-                |> Maybe.andThen .displayName
-                |> Maybe.withDefault "Anonymous"
+        youAreCurrentPlayer =
+            currentPlayer.id == inGameState.id
 
         turnText =
-            if currentPlayer.id == inGameState.id then
-                "It's your turn"
+            let
+                turnTextContent =
+                    if youAreCurrentPlayer then
+                        "It's your turn"
 
-            else
-                "It's " ++ currentPlayerName ++ "'s turn"
+                    else
+                        "It's " ++ currentPlayerName ++ "'s turn"
+
+                currentPlayerName =
+                    Dict.get currentPlayer.id inGameState.playerData
+                        |> Maybe.andThen .displayName
+                        |> Maybe.withDefault "Anonymous"
+            in
+            div [ class "text-gray-100 text-2xl" ] [ text turnTextContent ]
+
+        passButton =
+            div [ class "flex w-full justify-center h-16" ]
+                [ button
+                    [ class "btn"
+                    , class <|
+                        if Dice.doneRolling game.dice then
+                            "btn-primary"
+
+                        else
+                            "btn-outline"
+                    , class <|
+                        if youAreCurrentPlayer then
+                            ""
+
+                        else
+                            "invisible"
+                    ]
+                    [ text "Pass" ]
+                ]
+
+        timeRolledText =
+            let
+                ( currentDieRoll, tooltipText ) =
+                    case game.dice of
+                        Dice.NeverRolled ->
+                            ( 0, "Three rolls remaining" )
+
+                        Dice.RolledOnce _ ->
+                            ( 1, "Two rolls remaining" )
+
+                        Dice.RolledTwice _ ->
+                            ( 2, "One roll remaining" )
+
+                        Dice.RolledThrice _ ->
+                            ( 3, "No rolls remaining" )
+            in
+            div [ class "text-gray-100 tooltip cursor-pointer", attribute "data-tip" tooltipText ] [ text <| String.fromInt currentDieRoll ++ "/3" ]
+
+        rollButton =
+            button
+                [ class "btn btn-primary"
+                , class <|
+                    if youAreCurrentPlayer then
+                        "visible"
+
+                    else
+                        "invisible"
+                ]
+                [ text "Roll" ]
+
+        die value =
+            div [ class "w-12 h-12 bg-gray-100 rounded text-gray-900 text-2xl leading-none shadow-lg font-bold flex justify-center items-center" ]
+                [ div [] [ text <| String.fromInt value ] ]
     in
-    div [ class "flex flex-col h-full items-center space-y-8 p-8 text-gray-100 text-2xl" ]
-        [ div [] [ text turnText ]
+    div [ class "flex flex-col items-center space-y-8 p-8 " ]
+        [ turnText
+        , passButton
+        , div [ class "border border-gray-100 rounded w-full px-4 py-8 relative" ]
+            [ div [ class "absolute top-2 right-2 leading-none" ] [ timeRolledText ]
+            , div [ class "flex flex-col items-center space-y-12" ]
+                [ rollButton
+                , div [ class "flex flex-col w-full items-center space-y-4" ]
+                    [ div [ class "flex w-full justify-center space-x-4" ] [ die 1, die 2 ]
+                    , div [ class "flex w-full justify-center space-x-4" ] [ die 3, die 4, die 5 ]
+                    ]
+                ]
+            ]
         ]
 
 
@@ -172,22 +244,6 @@ renderShipGame inGameState game =
         , div [ class "w-96 h-full bg-blue-900 rounded-lg" ] [ renderCenterColumn inGameState game ]
         , div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
         ]
-
-
-
--- div [ class "flex flex-col w-1/2 items-center justify-start space-y-16" ]
---     [ div [ class "text-xl" ] [ text <| "Round: " ++ String.fromInt round ]
---     , div [ class "text-2xl" ] [ text <| "Dice: " ++ renderDice dice ]
---     , div [] [ button [ class "btn", disabled <| not (Debug.log "curent player id" currentPlayer.id == Debug.log "plkayer Id" playerId), onClick HandleRoll ] [ text "Roll" ] ]
---     , div [ class "w-full flex justify-center justify-between" ]
---         (players
---             |> SelectionList.toTupleList
---             |> List.map
---                 (\( player, selected ) ->
---                     renderPlayer inGameState player selected
---                 )
---         )
---     ]
 
 
 view : Model -> Browser.Document FrontendMsg

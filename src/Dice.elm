@@ -1,4 +1,14 @@
-module Dice exposing (Dice(..), RolledNumbers, create, diceValueGenerator, getRolledNumbers, keepDie, roll, sort)
+module Dice exposing
+    ( Dice(..)
+    , RolledNumbers
+    , create
+    , diceValueGenerator
+    , doneRolling
+    , getRolledNumbers
+    , keepDie
+    , roll
+    , sort
+    )
 
 import List.Extra
 import Random
@@ -223,3 +233,13 @@ dieIsLegal dieToKeep dieValues =
 
     else
         True
+
+
+doneRolling : Dice -> Bool
+doneRolling dice =
+    case dice of
+        RolledThrice _ ->
+            True
+
+        _ ->
+            False
