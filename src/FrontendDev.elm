@@ -43,8 +43,20 @@ app =
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     let
+        firstPlayerId =
+            0
+
+        secondPlayerId =
+            1
+
+        thirdPlayerId =
+            2
+
+        fourthPlayerId =
+            3
+
         initialLobby =
-            Lobby.create 0 "JKLM" 3 (Random.initialSeed 0)
+            Lobby.create 0 "JKLM" firstPlayerId (Random.initialSeed 0)
 
         lobbyWithPlayers =
             initialLobby
@@ -56,22 +68,23 @@ init url key =
         lobbyWithGame =
             lobbyWithPlayers
                 |> Lobby.startGame
+                |> Result.map (Lobby.updateGame (ShipGame.Roll { first = 6, second = 5, third = 4, fourth = 2, fifth = 1 }))
                 |> Result.withDefault initialLobby
 
         playerData : PlayerData
         playerData =
             Dict.fromList
-                [ ( 0, { id = 0, displayName = Just "Player 1" } )
-                , ( 1, { id = 1, displayName = Just "Player 2" } )
-                , ( 2, { id = 2, displayName = Just "Player 3" } )
-                , ( 3, { id = 3, displayName = Just "Player 4" } )
+                [ ( 0, { id = firstPlayerId, displayName = Just "Player 1" } )
+                , ( 1, { id = secondPlayerId, displayName = Just "Player 2" } )
+                , ( 2, { id = thirdPlayerId, displayName = Just "Player 3" } )
+                , ( 3, { id = fourthPlayerId, displayName = Just "Player 4" } )
                 ]
     in
     ( { key = key
       , state =
             Debug.log "Initial state"
                 (InGame
-                    { id = 0
+                    { id = firstPlayerId
                     , lobby = lobbyWithGame
                     , playerData = playerData
                     , nameInput = ""
@@ -235,7 +248,7 @@ renderCenterColumn inGameState game =
                 , class "text-gray-900 text-2xl leading-none font-bold"
                 , case displayMode of
                     DiceNotSelectable ->
-                        class ""
+                        class "border-4 border-gray-800"
 
                     DiceNotSelected ->
                         class "hover:border-4 hover:border-yellow-500/50"
@@ -244,6 +257,45 @@ renderCenterColumn inGameState game =
                         class "border-4 border-yellow-500"
                 ]
                 [ div [] [ text <| String.fromInt value ] ]
+
+        ( diceForFirstRow, diceForSecondRow ) =
+            case Dice.toDisplayValues game.dice of
+                Just [ first, second, third, fourth, fifth ] ->
+                    let
+                        ( firstValue, firstIsSelected ) =
+                            first
+
+                        ( secondValue, secondIsSelected ) =
+                            second
+
+                        ( thirdValue, thirdIsSelected ) =
+                            third
+
+                        ( fourthValue, fourthIsSelected ) =
+                            fourth
+
+                        ( fifthValue, fifthIsSelected ) =
+                            fifth
+
+                        renderDie ( dieValue, dieIsSelected ) =
+                            if youAreCurrentPlayer then
+                                die dieValue
+                                    (if dieIsSelected then
+                                        DiceSelected
+
+                                     else
+                                        DiceNotSelected
+                                    )
+
+                            else
+                                die dieValue DiceNotSelectable
+                    in
+                    ( [ renderDie first, renderDie second ]
+                    , [ renderDie third, renderDie fourth, renderDie fifth ]
+                    )
+
+                _ ->
+                    ( [], [] )
     in
     div [ class "flex flex-col items-center space-y-8 p-8 " ]
         [ turnText
@@ -253,8 +305,8 @@ renderCenterColumn inGameState game =
             , div [ class "flex flex-col items-center space-y-12" ]
                 [ rollButton
                 , div [ class "flex flex-col w-full items-center space-y-4" ]
-                    [ div [ class "flex w-full justify-center space-x-4" ] [ die 1 DiceSelected, die 2 DiceNotSelected ]
-                    , div [ class "flex w-full justify-center space-x-4" ] [ die 3 DiceNotSelected, die 4 DiceNotSelected, die 5 DiceNotSelected ]
+                    [ div [ class "flex w-full justify-center space-x-4" ] diceForFirstRow
+                    , div [ class "flex w-full justify-center space-x-4" ] diceForSecondRow
                     ]
                 ]
             ]

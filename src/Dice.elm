@@ -8,6 +8,7 @@ module Dice exposing
     , keepDie
     , roll
     , sort
+    , toDisplayValues
     )
 
 import List.Extra
@@ -243,3 +244,23 @@ doneRolling dice =
 
         _ ->
             False
+
+
+type alias DisplayValues =
+    Maybe (List ( Int, Bool ))
+
+
+toDisplayValues : Dice -> DisplayValues
+toDisplayValues dice =
+    case dice of
+        NeverRolled ->
+            Nothing
+
+        RolledOnce values ->
+            Just values
+
+        RolledTwice values ->
+            Just values
+
+        RolledThrice values ->
+            Just values

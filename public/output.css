@@ -3091,6 +3091,11 @@ html {
   border-color: rgb(234 179 8 / var(--tw-border-opacity));
 }
 
+.border-gray-800 {
+  --tw-border-opacity: 1;
+  border-color: rgb(31 41 55 / var(--tw-border-opacity));
+}
+
 .bg-white\/25 {
   background-color: rgb(255 255 255 / 0.25);
 }
