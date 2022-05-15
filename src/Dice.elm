@@ -1,6 +1,7 @@
 module Dice exposing
     ( Dice(..)
     , RolledNumbers
+    , canRollAgain
     , create
     , diceValueGenerator
     , doneRolling
@@ -264,3 +265,19 @@ toDisplayValues dice =
 
         RolledThrice values ->
             Just values
+
+
+canRollAgain : Dice -> Bool
+canRollAgain dice =
+    case dice of
+        NeverRolled ->
+            True
+
+        RolledOnce _ ->
+            True
+
+        RolledTwice _ ->
+            True
+
+        RolledThrice _ ->
+            False

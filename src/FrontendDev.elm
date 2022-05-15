@@ -65,10 +65,18 @@ init url key =
                 |> Maybe.andThen (Lobby.addPlayer 0)
                 |> Maybe.withDefault initialLobby
 
+        -- Modify this to change the initial state of the game.
         lobbyWithGame =
             lobbyWithPlayers
                 |> Lobby.startGame
                 |> Result.map (Lobby.updateGame (ShipGame.Roll { first = 6, second = 5, third = 4, fourth = 2, fifth = 1 }))
+                |> Result.map (Lobby.updateGame (ShipGame.Roll { first = 6, second = 5, third = 4, fourth = 2, fifth = 1 }))
+                |> Result.map (Lobby.updateGame (ShipGame.Roll { first = 6, second = 5, third = 4, fourth = 2, fifth = 1 }))
+                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 0))
+                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 1))
+                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 2))
+                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 3))
+                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 4))
                 |> Result.withDefault initialLobby
 
         playerData : PlayerData
@@ -233,7 +241,7 @@ renderCenterColumn inGameState game =
             button
                 [ class "btn btn-primary w-32"
                 , class <|
-                    if youAreCurrentPlayer then
+                    if youAreCurrentPlayer && Dice.canRollAgain game.dice then
                         "visible"
 
                     else
