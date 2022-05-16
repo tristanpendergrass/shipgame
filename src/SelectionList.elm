@@ -57,13 +57,13 @@ selectNext selectionList =
             Just (fromLists (List.concat [ before, [ selected ] ]) first rest)
 
 
-toList : SelectionList a -> List a
-toList (SelectionList listBefore selected listAfter) =
+toListValues : SelectionList a -> List a
+toListValues (SelectionList listBefore selected listAfter) =
     List.concat [ listBefore, [ selected ], listAfter ]
 
 
-toTupleList : SelectionList a -> List ( a, Bool )
-toTupleList selectionList =
+toList : SelectionList a -> List ( a, Bool )
+toList selectionList =
     let
         ( listBefore, selected, listAfter ) =
             toTuple selectionList

@@ -236,7 +236,7 @@ endGame : ShipGame -> ShipGameUpdateResult
 endGame shipGame =
     let
         players =
-            SelectionList.toList shipGame.players
+            SelectionList.toListValues shipGame.players
 
         convertPlayer player =
             { id = player.id, pastShips = player.pastShips }

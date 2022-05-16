@@ -285,7 +285,7 @@ renderShipGame playerId { round, players, dice } =
         , div [] [ button [ class "btn", disabled <| not (currentPlayer.id == playerId), onClick HandleRoll ] [ text "Roll" ] ]
         , div [ class "flex" ]
             (players
-                |> SelectionList.toTupleList
+                |> SelectionList.toList
                 |> List.map
                     (\( player, selected ) ->
                         div

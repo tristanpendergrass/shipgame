@@ -9,6 +9,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Lamdera
+import List.Extra
 import Lobby exposing (GameWrapper(..), Lobby)
 import Player exposing (Player, PlayerId)
 import Random
@@ -56,13 +57,13 @@ init url key =
             3
 
         initialLobby =
-            Lobby.create 0 "JKLM" firstPlayerId (Random.initialSeed 0)
+            Lobby.create 0 "JKLM" fourthPlayerId (Random.initialSeed 0)
 
         lobbyWithPlayers =
             initialLobby
-                |> Lobby.addPlayer 2
-                |> Maybe.andThen (Lobby.addPlayer 1)
-                |> Maybe.andThen (Lobby.addPlayer 0)
+                |> Lobby.addPlayer thirdPlayerId
+                |> Maybe.andThen (Lobby.addPlayer secondPlayerId)
+                |> Maybe.andThen (Lobby.addPlayer firstPlayerId)
                 |> Maybe.withDefault initialLobby
 
         -- Modify this to change the initial state of the game.
@@ -305,7 +306,7 @@ renderCenterColumn inGameState game =
                 _ ->
                     ( [], [] )
     in
-    div [ class "flex flex-col items-center space-y-8 p-8 " ]
+    div [ class "flex flex-col items-center space-y-8 p-8 overflow-y-auto overflow-x-hidden" ]
         [ turnText
         , passButton
         , div [ class "border border-gray-100 rounded w-full px-4 py-8 relative" ]
@@ -321,16 +322,81 @@ renderCenterColumn inGameState game =
         ]
 
 
+renderships : { name : Maybe String, pastShips : List Ship, isSelected : Bool, isYou : Bool } -> Html FrontendMsg
+renderships { name, pastShips, isSelected, isYou } =
+    let
+        displayName =
+            if isYou then
+                "Your ships"
+
+            else
+                Maybe.withDefault "Anonymous" name ++ "'s ships"
+    in
+    div [ class "flex flex-col items-center space-y-2 w-full" ]
+        [ div
+            [ class "text-gray-100"
+            , if isYou then
+                class "font-bold underline"
+
+              else
+                class ""
+            ]
+            [ text <| displayName ]
+        , div [ class "border border-gray-100 rounded w-full h-64" ] []
+        ]
+
+
+renderSideColumn : InGameState -> List ( ShipGamePlayer, Bool ) -> Html FrontendMsg
+renderSideColumn inGameState players =
+    div [ class "flex flex-col items-center space-y-16 p-4 overflow-y-auto overflow-x-hidden" ]
+        (players
+            |> List.map
+                (\( { id, pastShips }, isSelected ) ->
+                    let
+                        playerName =
+                            Dict.get id inGameState.playerData
+                                |> Maybe.andThen .displayName
+
+                        isYou =
+                            inGameState.id == id
+                    in
+                    renderships { name = playerName, pastShips = pastShips, isSelected = isSelected, isYou = isYou }
+                )
+        )
+
+
 renderShipGame : InGameState -> ShipGame -> Html FrontendMsg
 renderShipGame inGameState game =
     let
         currentPlayer =
             SelectionList.getSelected game.players
+
+        splitListLeftRight : List a -> ( List a, List a )
+        splitListLeftRight =
+            List.foldr
+                (\item ( left, right ) ->
+                    if List.length left <= List.length right then
+                        ( item :: left, right )
+
+                    else
+                        ( left, item :: right )
+                )
+                ( [], [] )
+
+        leftPlayers =
+            Debug.log "game.players" game.players
+                |> SelectionList.toList
+                |> List.Extra.removeIfIndex (\i -> modBy 2 i == 1)
+
+        rightPlayers =
+            game.players
+                |> SelectionList.toList
+                |> List.Extra.removeIfIndex (\i -> modBy 2 i == 0)
     in
     div [ class "flex w-full h-full justify-center space-x-12" ]
-        [ div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
+        [ div [ class "w-72 h-full bg-white/25 rounded-lg" ] [ renderSideColumn inGameState leftPlayers ]
         , div [ class "w-96 h-full bg-blue-900 rounded-lg" ] [ renderCenterColumn inGameState game ]
-        , div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
+        , div [ class "w-72 h-full bg-white/25 rounded-lg" ] [ renderSideColumn inGameState rightPlayers ]
         ]
 
 
@@ -346,7 +412,7 @@ view model =
     { title = "Shipgame"
     , body =
         css
-            ++ [ div [ class "w-screen h-screen flex flex-col items-center py-16 space-y-12 bg-blue-500" ]
+            ++ [ div [ class "w-screen h-screen flex flex-col items-center pt-16 pb-4 space-y-12 bg-blue-500 overflow-y-auto" ]
                     [ div [ class "text-green-200 font-bold text-9xl" ] [ text "Shipgame" ]
                     , case model.state of
                         Unconnected ->
