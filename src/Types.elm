@@ -14,7 +14,8 @@ import Url exposing (Url)
 
 isDev : Bool
 isDev =
-    True
+    -- True
+    False
 
 
 type alias PlayerData =

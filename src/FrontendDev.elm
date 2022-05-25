@@ -73,11 +73,12 @@ init url key =
                 |> Result.map (Lobby.updateGame (ShipGame.Roll { first = 6, second = 5, third = 4, fourth = 2, fifth = 1 }))
                 |> Result.map (Lobby.updateGame (ShipGame.Roll { first = 6, second = 5, third = 4, fourth = 2, fifth = 1 }))
                 |> Result.map (Lobby.updateGame (ShipGame.Roll { first = 6, second = 5, third = 4, fourth = 2, fifth = 1 }))
-                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 0))
-                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 1))
-                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 2))
-                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 3))
-                -- |> Result.map (Lobby.updateGame (ShipGame.Keep 4))
+                |> Result.map (Lobby.updateGame (ShipGame.Keep 0))
+                |> Result.map (Lobby.updateGame (ShipGame.Keep 1))
+                |> Result.map (Lobby.updateGame (ShipGame.Keep 2))
+                |> Result.map (Lobby.updateGame (ShipGame.Keep 3))
+                |> Result.map (Lobby.updateGame (ShipGame.Keep 4))
+                |> Result.map (Lobby.updateGame ShipGame.Pass)
                 |> Result.withDefault initialLobby
 
         playerData : PlayerData
@@ -93,7 +94,7 @@ init url key =
       , state =
             Debug.log "Initial state"
                 (InGame
-                    { id = firstPlayerId
+                    { id = secondPlayerId
                     , lobby = lobbyWithGame
                     , playerData = playerData
                     , nameInput = ""
@@ -322,27 +323,57 @@ renderCenterColumn inGameState game =
         ]
 
 
-renderships : { name : Maybe String, pastShips : List Ship, isSelected : Bool, isYou : Bool } -> Html FrontendMsg
-renderships { name, pastShips, isSelected, isYou } =
+renderShips : { name : Maybe String, pastShips : List Ship, isSelected : Bool, isYou : Bool } -> Html FrontendMsg
+renderShips { name, pastShips, isSelected, isYou } =
     let
-        displayName =
-            if isYou then
-                "Your ships"
+        renderDisplayName =
+            div
+                [ class "text-gray-100"
+                , if isYou then
+                    class "font-bold underline"
 
-            else
-                Maybe.withDefault "Anonymous" name ++ "'s ships"
+                  else
+                    class ""
+                ]
+                [ text <|
+                    if isYou then
+                        "Your ships"
+
+                    else
+                        Maybe.withDefault "Anonymous" name ++ "'s ships"
+                ]
+
+        renderShip : Ship -> Html FrontendMsg
+        renderShip ship =
+            let
+                shipText =
+                    case ship of
+                        ShipWithNothing ->
+                            "Incomplete"
+
+                        ShipWithOne ->
+                            "Incomplete"
+
+                        ShipWithTwo ->
+                            "Incomplete"
+
+                        ShipWithThree ->
+                            "Incomplete"
+
+                        ShipWithFour num1 ->
+                            "Ship (" ++ String.fromInt num1 ++ ")"
+
+                        ShipWithFive num1 num2 ->
+                            "Ship (" ++ String.fromInt num1 ++ ", " ++ " " ++ String.fromInt num2 ++ ")"
+            in
+            span [ class "text-gray-100" ] [ text shipText ]
     in
     div [ class "flex flex-col items-center space-y-2 w-full" ]
-        [ div
-            [ class "text-gray-100"
-            , if isYou then
-                class "font-bold underline"
-
-              else
-                class ""
+        [ renderDisplayName
+        , div [ class "border border-gray-100 rounded w-full h-64 p-12" ]
+            [ div [ class "flex flex-col w-full items-center space-y-2" ]
+                (List.map renderShip pastShips)
             ]
-            [ text <| displayName ]
-        , div [ class "border border-gray-100 rounded w-full h-64" ] []
         ]
 
 
@@ -360,7 +391,7 @@ renderSideColumn inGameState players =
                         isYou =
                             inGameState.id == id
                     in
-                    renderships { name = playerName, pastShips = pastShips, isSelected = isSelected, isYou = isYou }
+                    renderShips { name = playerName, pastShips = pastShips, isSelected = isSelected, isYou = isYou }
                 )
         )
 
