@@ -23,12 +23,6 @@ type alias Model =
     FrontendModel
 
 
-type DiceDisplayMode
-    = DiceNotSelectable
-    | DiceNotSelected
-    | DiceSelected
-
-
 app =
     Lamdera.frontend
         { init = init
@@ -113,6 +107,16 @@ update msg model =
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
     ( model, Cmd.none )
+
+
+
+-- VIEW
+
+
+type DiceDisplayMode
+    = DiceNotSelectable
+    | DiceNotSelected
+    | DiceSelected
 
 
 renderDice : Dice -> String
