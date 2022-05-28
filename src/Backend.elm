@@ -282,8 +282,20 @@ updateFromFrontend sessionId clientId msg model =
                                             ( model, Lamdera.sendToFrontend clientId JoinGameFailed )
 
                                         Just newLobby ->
-                                            ( { model | lobbies = model.lobbies |> Dict.insert lobbyId newLobby }
-                                            , Cmd.batch <| sendLobbyUpdateToFrontend newLobby
+                                            let
+                                                playerData =
+                                                    model.playerData
+                                                        |> scopePlayerDataToLobby newLobby
+                                            in
+                                            ( { model
+                                                | lobbies = model.lobbies |> Dict.insert lobbyId newLobby
+                                                , sessions = Sessions.updateLobbyId sessionId lobbyId model.sessions
+                                              }
+                                            , Cmd.batch <|
+                                                List.concat
+                                                    [ sendLobbyUpdateToFrontend newLobby
+                                                    , [ Lamdera.sendToFrontend clientId (GoToInGame playerId lobby playerData) ]
+                                                    ]
                                             )
 
         NamePlayer name ->
@@ -293,6 +305,9 @@ updateFromFrontend sessionId clientId msg model =
 
                 Just ( playerId, lobbyId ) ->
                     let
+                        ( _, _ ) =
+                            ( playerId, lobbyId )
+
                         newPlayerData =
                             model.playerData
                                 |> giveNameToPlayerId name playerId

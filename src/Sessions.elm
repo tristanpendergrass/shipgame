@@ -58,18 +58,14 @@ clientIdForPlayerId sessions playerId =
         |> Maybe.andThen (\( _, session ) -> session.clientId)
 
 
-{-| Get a session for a session id only if the player is in a Lobby.addPlayer
+{-| Get a session for a session id only if the player is in a Lobby
 -}
 getPlayerIdAndLobbyId : SessionId -> Sessions -> Maybe ( PlayerId, LobbyId )
 getPlayerIdAndLobbyId sessionId sessions =
-    case Dict.get sessionId sessions of
-        Nothing ->
-            Debug.log "no session" Nothing
-
-        Just session ->
-            case (Debug.log "session" session).lobbyId of
-                Nothing ->
-                    Debug.log "no lobbyid" Nothing
-
-                Just lobbyId ->
-                    Just ( session.playerId, lobbyId )
+    Dict.get sessionId sessions
+        |> Maybe.andThen
+            (\session ->
+                session.lobbyId
+                    |> Maybe.map
+                        (\lobbyId -> ( session.playerId, lobbyId ))
+            )
