@@ -166,6 +166,18 @@ update msg model =
                     ( inGameState, Lamdera.sendToBackend (UpdateGameWithRoll inGameState.lobby.id) )
                 )
 
+        HandlePass ->
+            updateInGame
+                (\inGameState ->
+                    ( inGameState, Lamdera.sendToBackend (UpdateGame inGameState.lobby.id Pass) )
+                )
+
+        HandleKeep index ->
+            updateInGame
+                (\inGameState ->
+                    ( inGameState, Lamdera.sendToBackend (UpdateGame inGameState.lobby.id (Keep index)) )
+                )
+
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
@@ -342,6 +354,7 @@ renderCenterColumn inGameState game =
 
                         else
                             "invisible"
+                    , onClick HandlePass
                     ]
                     [ text "Pass" ]
                 ]
@@ -382,11 +395,12 @@ renderCenterColumn inGameState game =
 
                     else
                         "invisible"
+                , onClick HandleRoll
                 ]
                 [ text rollText ]
 
-        die : Int -> DiceDisplayMode -> Html FrontendMsg
-        die value displayMode =
+        die : { value : Int, displayMode : DiceDisplayMode, index : Int } -> Html FrontendMsg
+        die { value, displayMode, index } =
             div
                 [ class "flex justify-center items-center w-12 h-12 bg-gray-100 rounded shadow-lg cursor-pointer"
                 , class "text-gray-900 text-2xl leading-none font-bold"
@@ -399,6 +413,7 @@ renderCenterColumn inGameState game =
 
                     DiceSelected ->
                         class "border-4 border-yellow-500"
+                , onClick (HandleKeep index)
                 ]
                 [ div [] [ text <| String.fromInt value ] ]
 
@@ -421,21 +436,25 @@ renderCenterColumn inGameState game =
                         ( fifthValue, fifthIsSelected ) =
                             fifth
 
-                        renderDie ( dieValue, dieIsSelected ) =
+                        renderDie : ( Int, Bool ) -> Int -> Html FrontendMsg
+                        renderDie ( dieValue, dieIsSelected ) index =
                             if youAreCurrentPlayer then
-                                die dieValue
-                                    (if dieIsSelected then
-                                        DiceSelected
+                                die
+                                    { value = dieValue
+                                    , displayMode =
+                                        if dieIsSelected then
+                                            DiceSelected
 
-                                     else
-                                        DiceNotSelected
-                                    )
+                                        else
+                                            DiceNotSelected
+                                    , index = index
+                                    }
 
                             else
-                                die dieValue DiceNotSelectable
+                                die { value = dieValue, displayMode = DiceNotSelectable, index = index }
                     in
-                    ( [ renderDie first, renderDie second ]
-                    , [ renderDie third, renderDie fourth, renderDie fifth ]
+                    ( [ renderDie first 0, renderDie second 1 ]
+                    , [ renderDie third 2, renderDie fourth 3, renderDie fifth 4 ]
                     )
 
                 _ ->
@@ -549,7 +568,7 @@ renderShipGame inGameState game =
                 ( [], [] )
 
         leftPlayers =
-            Debug.log "game.players" game.players
+            game.players
                 |> SelectionList.toList
                 |> List.Extra.removeIfIndex (\i -> modBy 2 i == 1)
 

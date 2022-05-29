@@ -64,6 +64,8 @@ type FrontendMsg
     | HandleStartGameClick
     | HandleEndGameClick
     | HandleRoll
+    | HandlePass
+    | HandleKeep Int
 
 
 type ToBackend

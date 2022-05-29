@@ -386,10 +386,10 @@ updateFromFrontend sessionId clientId msg model =
                                 |> Random.map ShipGame.Roll
 
                         ( shipGameMsg, newSeed ) =
-                            Random.step shipGameMsgGenerator lobby.seed
+                            Random.step shipGameMsgGenerator model.seed
 
                         newLobby =
-                            Lobby.updateGame shipGameMsg lobby
+                            Lobby.updateGame (Debug.log "msg" shipGameMsg) lobby
                     in
                     ( { model
                         | lobbies = Dict.insert lobbyId newLobby model.lobbies

@@ -24,7 +24,6 @@ type alias Lobby =
     { id : LobbyId
     , joinCode : String -- the code that players can use to join the game
     , gameWrapper : GameWrapper
-    , seed : Random.Seed
     }
 
 
@@ -33,7 +32,6 @@ create lobbyId joinCode playerId seed =
     { id = lobbyId
     , joinCode = joinCode
     , gameWrapper = NotStarted [ playerId ]
-    , seed = seed
     }
 
 
