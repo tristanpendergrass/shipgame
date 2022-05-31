@@ -321,7 +321,11 @@ updateFromFrontend sessionId clientId msg model =
                                     Cmd.none
 
                                 Just lobby ->
-                                    Cmd.batch <| sendLobbyPlayerDataUpdate newPlayerData lobby
+                                    Cmd.batch <|
+                                        List.concat
+                                            [ sendLobbyPlayerDataUpdate newPlayerData lobby
+                                            , sendLobbyUpdateToFrontend lobby
+                                            ]
                     in
                     ( model
                         |> setPlayerData newPlayerData
