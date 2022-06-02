@@ -5,7 +5,6 @@ import Browser.Navigation as Nav
 import Dice exposing (..)
 import Dict
 import Dict.Extra
-import FrontendDev
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -27,7 +26,8 @@ type alias Model =
 
 app =
     if isDev then
-        FrontendDev.app
+        -- FrontendDev.app
+        Debug.todo "Implement FrontendDev"
 
     else
         Lamdera.frontend
@@ -202,7 +202,7 @@ updateFromBackend msg model =
                 | state =
                     MainMenu
                         { id = playerId
-                        , joinCode = "JKLM"
+                        , joinCode = "TOUJ"
                         , joinCodeIsInvalid = False
                         , formSubmitted = False
                         }
@@ -476,6 +476,32 @@ renderCenterColumn inGameState game =
         ]
 
 
+renderShip : Ship -> Html FrontendMsg
+renderShip ship =
+    let
+        shipText =
+            case ship of
+                ShipWithNothing ->
+                    "Incomplete"
+
+                ShipWithOne ->
+                    "Incomplete"
+
+                ShipWithTwo ->
+                    "Incomplete"
+
+                ShipWithThree ->
+                    "Incomplete"
+
+                ShipWithFour num1 ->
+                    "Ship (" ++ String.fromInt num1 ++ ")"
+
+                ShipWithFive num1 num2 ->
+                    "Ship (" ++ String.fromInt num1 ++ ", " ++ " " ++ String.fromInt num2 ++ ")"
+    in
+    span [ class "text-gray-100" ] [ text shipText ]
+
+
 renderShips : { name : Maybe String, pastShips : List Ship, isSelected : Bool, isYou : Bool } -> Html FrontendMsg
 renderShips { name, pastShips, isSelected, isYou } =
     let
@@ -495,31 +521,6 @@ renderShips { name, pastShips, isSelected, isYou } =
                     else
                         Maybe.withDefault "Anonymous" name ++ "'s ships"
                 ]
-
-        renderShip : Ship -> Html FrontendMsg
-        renderShip ship =
-            let
-                shipText =
-                    case ship of
-                        ShipWithNothing ->
-                            "Incomplete"
-
-                        ShipWithOne ->
-                            "Incomplete"
-
-                        ShipWithTwo ->
-                            "Incomplete"
-
-                        ShipWithThree ->
-                            "Incomplete"
-
-                        ShipWithFour num1 ->
-                            "Ship (" ++ String.fromInt num1 ++ ")"
-
-                        ShipWithFive num1 num2 ->
-                            "Ship (" ++ String.fromInt num1 ++ ", " ++ " " ++ String.fromInt num2 ++ ")"
-            in
-            span [ class "text-gray-100" ] [ text shipText ]
     in
     div [ class "flex flex-col items-center space-y-2 w-full" ]
         [ renderDisplayName
@@ -581,6 +582,50 @@ renderShipGame inGameState game =
         [ div [ class "w-72 h-full bg-white/25 rounded-lg" ] [ renderSideColumn inGameState leftPlayers ]
         , div [ class "w-96 h-full bg-blue-900 rounded-lg" ] [ renderCenterColumn inGameState game ]
         , div [ class "w-72 h-full bg-white/25 rounded-lg" ] [ renderSideColumn inGameState rightPlayers ]
+        ]
+
+
+renderFinished : InGameState -> GameSummary -> Html FrontendMsg
+renderFinished inGameState gameSummary =
+    div [ class "flex w-full h-full justify-center space-x-12" ]
+        [ div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
+        , div [ class "w-96 h-full bg-blue-900 rounded-lg" ]
+            [ div [ class "flex flex-col items-center space-y-8 p-8 overflow-y-auto overflow-x-hidden" ]
+                [ span [ class "font-bold text-2xl" ] [ text "Finished" ]
+                , div [ class "flex flex-col items-center w-full space-y-4" ]
+                    (gameSummary
+                        |> List.map
+                            (\playerSummary ->
+                                let
+                                    playerName =
+                                        Dict.get playerSummary.id inGameState.playerData
+                                            |> Maybe.andThen .displayName
+                                            |> Maybe.withDefault "Anonymous"
+
+                                    isYou =
+                                        inGameState.id == playerSummary.id
+
+                                    name =
+                                        span
+                                            [ class <|
+                                                if isYou then
+                                                    "underline"
+
+                                                else
+                                                    ""
+                                            ]
+                                            [ text playerName ]
+                                in
+                                div [ class "flex flex-col w-full items-center space-y-4" ] <|
+                                    List.concat
+                                        [ [ name ]
+                                        , List.map renderShip playerSummary.pastShips
+                                        ]
+                            )
+                    )
+                ]
+            ]
+        , div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
         ]
 
 
@@ -678,6 +723,9 @@ view model =
 
                                 Lobby.InProgress shipGame ->
                                     renderShipGame inGameState shipGame
+
+                                Lobby.Finished gameSummary ->
+                                    renderFinished inGameState gameSummary
                     ]
                ]
     }

@@ -4,7 +4,7 @@ import Dict exposing (Dict)
 import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
 import Random
-import ShipGame exposing (ShipGame)
+import ShipGame exposing (GameSummary, ShipGame)
 
 
 type alias LobbyId =
@@ -14,6 +14,7 @@ type alias LobbyId =
 type GameWrapper
     = NotStarted (List PlayerId)
     | InProgress ShipGame
+    | Finished GameSummary
 
 
 
@@ -50,6 +51,18 @@ removePlayer removedPlayerId lobby =
 
                         Just newGame ->
                             InProgress newGame
+
+                Finished players ->
+                    let
+                        newPlayers : GameSummary
+                        newPlayers =
+                            players
+                                |> List.filter
+                                    (\player ->
+                                        player.id /= removedPlayerId
+                                    )
+                    in
+                    Finished newPlayers
     }
 
 
@@ -62,6 +75,9 @@ isEmpty lobby =
         InProgress _ ->
             False
 
+        Finished players ->
+            List.isEmpty players
+
 
 getPlayerIds : Lobby -> List PlayerId
 getPlayerIds lobby =
@@ -72,6 +88,9 @@ getPlayerIds lobby =
         InProgress game ->
             ShipGame.getPlayers game
                 |> List.Nonempty.toList
+
+        Finished players ->
+            List.map .id players
 
 
 type StartLobbyErr
@@ -115,6 +134,9 @@ addPlayer playerId lobby =
         InProgress _ ->
             Nothing
 
+        Finished _ ->
+            Nothing
+
 
 updateGame : ShipGame.ShipGameMsg -> Lobby -> Lobby
 updateGame shipGameMsg lobby =
@@ -124,9 +146,11 @@ updateGame shipGameMsg lobby =
 
         InProgress game ->
             case ShipGame.update shipGameMsg game of
-                ShipGame.GameOver _ ->
-                    -- TODO: handle game over
-                    { lobby | gameWrapper = NotStarted [] }
+                ShipGame.GameOver gameSummary ->
+                    { lobby | gameWrapper = Finished gameSummary }
 
                 ShipGame.GameContinues newGame ->
                     { lobby | gameWrapper = InProgress newGame }
+
+        Finished _ ->
+            lobby

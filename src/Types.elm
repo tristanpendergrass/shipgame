@@ -23,11 +23,19 @@ type alias PlayerData =
 
 
 type alias MainMenuState =
-    { id : PlayerId, joinCode : String, joinCodeIsInvalid : Bool, formSubmitted : Bool }
+    { id : PlayerId
+    , joinCode : String
+    , joinCodeIsInvalid : Bool
+    , formSubmitted : Bool
+    }
 
 
 type alias InGameState =
-    { id : PlayerId, lobby : Lobby, playerData : PlayerData, nameInput : String }
+    { id : PlayerId
+    , lobby : Lobby
+    , playerData : PlayerData
+    , nameInput : String
+    }
 
 
 type FrontendState
