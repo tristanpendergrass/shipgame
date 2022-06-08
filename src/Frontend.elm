@@ -587,6 +587,11 @@ renderShipGame inGameState game =
 
 renderFinished : InGameState -> GameSummary -> Html FrontendMsg
 renderFinished inGameState gameSummary =
+    let
+        comparePlayersByScore : ShipGamePlayer -> ShipGamePlayer -> Order
+        comparePlayersByScore player1 player2 =
+            compare (ShipGame.getPlayerScore player1) (ShipGame.getPlayerScore player2)
+    in
     div [ class "flex w-full h-full justify-center space-x-12" ]
         [ div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
         , div [ class "w-96 h-full bg-blue-900 rounded-lg" ]
@@ -594,6 +599,7 @@ renderFinished inGameState gameSummary =
                 [ span [ class "font-bold text-2xl" ] [ text "Finished" ]
                 , div [ class "flex flex-col items-center w-full space-y-4" ]
                     (gameSummary
+                        |> List.sortWith comparePlayersByScore
                         |> List.map
                             (\playerSummary ->
                                 let

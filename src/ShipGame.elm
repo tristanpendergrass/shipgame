@@ -9,6 +9,7 @@ module ShipGame exposing
     , create
     , getCurrentPlayer
     , getInfo
+    , getPlayerScore
     , getPlayers
     , removePlayer
     , update
@@ -286,3 +287,32 @@ shipFromRolledNumbers rolledNumbers =
                     _ ->
                         -- Should never happen
                         ShipWithNothing
+
+
+getPlayerScore : ShipGamePlayer -> Int
+getPlayerScore { pastShips } =
+    let
+        getScore : Ship -> Int
+        getScore ship =
+            case ship of
+                ShipWithNothing ->
+                    0
+
+                ShipWithOne ->
+                    0
+
+                ShipWithTwo ->
+                    0
+
+                ShipWithThree ->
+                    0
+
+                ShipWithFour num1 ->
+                    num1
+
+                ShipWithFive num1 num2 ->
+                    num1 + num2
+    in
+    pastShips
+        |> List.map getScore
+        |> List.foldl (+) 0
