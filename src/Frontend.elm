@@ -25,20 +25,15 @@ type alias Model =
 
 
 app =
-    if isDev then
-        -- FrontendDev.app
-        Debug.todo "Implement FrontendDev"
-
-    else
-        Lamdera.frontend
-            { init = init
-            , onUrlRequest = UrlClicked
-            , onUrlChange = UrlChanged
-            , update = update
-            , updateFromBackend = updateFromBackend
-            , subscriptions = \m -> Sub.none
-            , view = view
-            }
+    Lamdera.frontend
+        { init = init
+        , onUrlRequest = UrlClicked
+        , onUrlChange = UrlChanged
+        , update = update
+        , updateFromBackend = updateFromBackend
+        , subscriptions = \m -> Sub.none
+        , view = view
+        }
 
 
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )

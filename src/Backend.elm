@@ -393,7 +393,7 @@ updateFromFrontend sessionId clientId msg model =
                             Random.step shipGameMsgGenerator model.seed
 
                         newLobby =
-                            Lobby.updateGame (Debug.log "msg" shipGameMsg) lobby
+                            Lobby.updateGame shipGameMsg lobby
                     in
                     ( { model
                         | lobbies = Dict.insert lobbyId newLobby model.lobbies
