@@ -402,6 +402,32 @@ updateFromFrontend sessionId clientId msg model =
                     , Cmd.batch <| sendLobbyUpdateToFrontend newLobby
                     )
 
+        ExitLobby ->
+            case Sessions.getPlayerIdAndLobbyId sessionId model.sessions of
+                Nothing ->
+                    noOp
+
+                Just ( playerId, lobbyId ) ->
+                    case Dict.get lobbyId model.lobbies of
+                        Nothing ->
+                            noOp
+
+                        Just lobby ->
+                            let
+                                newLobby =
+                                    Lobby.removePlayer playerId lobby
+
+                                newSessions =
+                                    model.sessions
+                                        |> Sessions.exitLobby sessionId
+                            in
+                            ( { model
+                                | lobbies = Dict.insert lobbyId newLobby model.lobbies
+                                , sessions = newSessions
+                              }
+                            , Cmd.none
+                            )
+
 
 subscriptions : Model -> Sub BackendMsg
 subscriptions model =

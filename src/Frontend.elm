@@ -78,6 +78,19 @@ createInGameUpdate model updateFn =
             ( model, Cmd.none )
 
 
+getPlayerId : Model -> Maybe PlayerId
+getPlayerId model =
+    case model.state of
+        Unconnected ->
+            Nothing
+
+        MainMenu { id } ->
+            Just id
+
+        InGame { id } ->
+            Just id
+
+
 update : FrontendMsg -> Model -> ( Model, Cmd FrontendMsg )
 update msg model =
     let
@@ -177,6 +190,24 @@ update msg model =
                 (\inGameState ->
                     ( inGameState, Lamdera.sendToBackend (UpdateGame inGameState.lobby.id (Keep index)) )
                 )
+
+        ReturnToMainMenu ->
+            case getPlayerId model of
+                Nothing ->
+                    noOp
+
+                Just playerId ->
+                    ( { model
+                        | state =
+                            MainMenu
+                                { id = playerId
+                                , joinCode = ""
+                                , joinCodeIsInvalid = False
+                                , formSubmitted = False
+                                }
+                      }
+                    , Lamdera.sendToBackend ExitLobby
+                    )
 
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
@@ -590,18 +621,19 @@ renderFinished inGameState gameSummary =
     let
         comparePlayersByScore : ShipGamePlayer -> ShipGamePlayer -> Order
         comparePlayersByScore player1 player2 =
-            compare (ShipGame.getPlayerScore player1) (ShipGame.getPlayerScore player2)
+            compare (ShipGame.getPlayerScore player2) (ShipGame.getPlayerScore player1)
     in
     div [ class "flex w-full h-full justify-center space-x-12" ]
         [ div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
         , div [ class "w-96 h-full bg-blue-900 rounded-lg" ]
             [ div [ class "flex flex-col items-center space-y-8 p-8 overflow-y-auto overflow-x-hidden" ]
                 [ span [ class "font-bold text-2xl" ] [ text "Finished" ]
+                , button [ class "btn btn-secondary", onClick ReturnToMainMenu ] [ text "Return to main menu" ]
                 , div [ class "flex flex-col items-center w-full space-y-4" ]
                     (gameSummary
                         |> List.sortWith comparePlayersByScore
-                        |> List.map
-                            (\playerSummary ->
+                        |> List.indexedMap
+                            (\index playerSummary ->
                                 let
                                     playerName =
                                         Dict.get playerSummary.id inGameState.playerData
@@ -622,7 +654,16 @@ renderFinished inGameState gameSummary =
                                             ]
                                             [ text playerName ]
                                 in
-                                div [ class "flex flex-col w-full items-center space-y-4" ] <|
+                                div
+                                    [ class "flex flex-col w-full items-center space-y-4"
+                                    , class <|
+                                        if index == 0 then
+                                            "border-yellow-500 border-2 rounded py-4"
+
+                                        else
+                                            ""
+                                    ]
+                                <|
                                     List.concat
                                         [ [ name ]
                                         , List.map renderShip playerSummary.pastShips

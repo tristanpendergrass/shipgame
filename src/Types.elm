@@ -74,6 +74,7 @@ type FrontendMsg
     | HandleRoll
     | HandlePass
     | HandleKeep Int
+    | ReturnToMainMenu
 
 
 type ToBackend
@@ -85,6 +86,7 @@ type ToBackend
     | EndGame LobbyId
     | UpdateGame LobbyId ShipGame.ShipGameMsg
     | UpdateGameWithRoll LobbyId
+    | ExitLobby
 
 
 type BackendMsg

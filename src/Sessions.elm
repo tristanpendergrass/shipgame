@@ -31,6 +31,16 @@ type alias Sessions =
     Dict SessionId Session
 
 
+exitLobby : SessionId -> Sessions -> Sessions
+exitLobby sessionId =
+    Dict.update sessionId
+        (Maybe.andThen
+            (\session ->
+                Just { session | lobbyId = Nothing }
+            )
+        )
+
+
 create : Sessions
 create =
     Dict.empty
