@@ -447,21 +447,6 @@ renderCenterColumn inGameState game =
             case Dice.toDisplayValues game.dice of
                 Just [ first, second, third, fourth, fifth ] ->
                     let
-                        ( firstValue, firstIsSelected ) =
-                            first
-
-                        ( secondValue, secondIsSelected ) =
-                            second
-
-                        ( thirdValue, thirdIsSelected ) =
-                            third
-
-                        ( fourthValue, fourthIsSelected ) =
-                            fourth
-
-                        ( fifthValue, fifthIsSelected ) =
-                            fifth
-
                         renderDie : ( Int, Bool ) -> Int -> Html FrontendMsg
                         renderDie ( dieValue, dieIsSelected ) index =
                             if youAreCurrentPlayer then
@@ -477,7 +462,16 @@ renderCenterColumn inGameState game =
                                     }
 
                             else
-                                die { value = dieValue, displayMode = DiceNotSelectable, index = index }
+                                die
+                                    { value = dieValue
+                                    , displayMode =
+                                        if dieIsSelected then
+                                            DiceSelected
+
+                                        else
+                                            DiceNotSelectable
+                                    , index = index
+                                    }
                     in
                     ( [ renderDie first 0, renderDie second 1 ]
                     , [ renderDie third 2, renderDie fourth 3, renderDie fifth 4 ]
