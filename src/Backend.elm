@@ -264,7 +264,7 @@ updateFromFrontend sessionId clientId msg model =
                                                 False
 
                                             Just game ->
-                                                game.joinCode == joinCode
+                                                String.toLower game.joinCode == String.toLower joinCode
                                     )
                     in
                     case maybeLobbyId of
