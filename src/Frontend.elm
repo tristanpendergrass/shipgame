@@ -479,6 +479,13 @@ renderCenterColumn inGameState game =
 
                 _ ->
                     ( [], [] )
+
+        leaveGameButton =
+            button
+                [ class "btn btn-warning btn-outline w-32 text-gray-900"
+                , onClick ReturnToMainMenu
+                ]
+                [ text "Leave game" ]
     in
     div [ class "flex flex-col items-center space-y-8 p-8 overflow-y-auto overflow-x-hidden" ]
         [ turnText
@@ -493,6 +500,7 @@ renderCenterColumn inGameState game =
                     ]
                 ]
             ]
+        , leaveGameButton
         ]
 
 
