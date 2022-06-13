@@ -339,6 +339,15 @@ renderPlayer inGameState player isSelected =
         ]
 
 
+leaveGameButton : Html FrontendMsg
+leaveGameButton =
+    button
+        [ class "btn btn-warning btn-outline w-32 text-gray-900"
+        , onClick ReturnToMainMenu
+        ]
+        [ text "Leave game" ]
+
+
 renderCenterColumn : InGameState -> ShipGame -> Html FrontendMsg
 renderCenterColumn inGameState game =
     let
@@ -479,13 +488,6 @@ renderCenterColumn inGameState game =
 
                 _ ->
                     ( [], [] )
-
-        leaveGameButton =
-            button
-                [ class "btn btn-warning btn-outline w-32 text-gray-900"
-                , onClick ReturnToMainMenu
-                ]
-                [ text "Leave game" ]
     in
     div [ class "flex flex-col items-center space-y-8 p-8 overflow-y-auto overflow-x-hidden" ]
         [ turnText
