@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
 import Random
+import Random.List
 import ShipGame exposing (GameSummary, ShipGame)
 
 
@@ -98,20 +99,43 @@ type StartLobbyErr
     | GameAlreadyStarted
 
 
-startGame : Lobby -> Result StartLobbyErr Lobby
+shuffleNonEmpty : Nonempty a -> Random.Generator (Nonempty a)
+shuffleNonEmpty (List.Nonempty.Nonempty first rest) =
+    Random.List.shuffle (first :: rest)
+        |> Random.map
+            (\shuffledList ->
+                case shuffledList of
+                    [] ->
+                        List.Nonempty.Nonempty first rest
+
+                    randomFirst :: randomRest ->
+                        List.Nonempty.Nonempty randomFirst randomRest
+            )
+
+
+startGame : Lobby -> Result StartLobbyErr (Random.Generator Lobby)
 startGame lobby =
     case lobby.gameWrapper of
-        NotStarted (firstPlayer :: rest) ->
-            let
-                game =
-                    ShipGame.create (List.Nonempty.Nonempty firstPlayer rest)
-            in
-            Ok { lobby | gameWrapper = InProgress game }
-
         NotStarted [] ->
             Err NotEnoughPlayers
 
-        _ ->
+        NotStarted (first :: rest) ->
+            Ok <|
+                (shuffleNonEmpty (List.Nonempty.Nonempty first rest)
+                    |> Random.map
+                        (\randomizedPlayerList ->
+                            let
+                                game =
+                                    ShipGame.create randomizedPlayerList
+                            in
+                            { lobby | gameWrapper = InProgress game }
+                        )
+                )
+
+        InProgress _ ->
+            Err GameAlreadyStarted
+
+        Finished _ ->
             Err GameAlreadyStarted
 
 

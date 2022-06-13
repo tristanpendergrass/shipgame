@@ -13,6 +13,6 @@ $ lamdera live
 [ ] Move Leave Game option to a settings menu so it won't be accidentally clicked.
 [ ] Add animation to show the dice are rolling.
 [x] Change main menu so don't prefill join code and separate create game button from other buttons
-[ ] Randomize player order on game start
+[x] Randomize player order on game start
 [ ] Let players claim starting player
 [ ] Convert colors to use the theming

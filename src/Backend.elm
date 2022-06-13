@@ -339,8 +339,15 @@ updateFromFrontend sessionId clientId msg model =
 
                 Just lobby ->
                     case Lobby.startGame lobby of
-                        Ok newLobby ->
-                            ( { model | lobbies = Dict.insert lobbyId newLobby model.lobbies }
+                        Ok newLobbyGenerator ->
+                            let
+                                ( newLobby, newSeed ) =
+                                    Random.step newLobbyGenerator model.seed
+                            in
+                            ( { model
+                                | lobbies = Dict.insert lobbyId newLobby model.lobbies
+                                , seed = newSeed
+                              }
                             , Cmd.batch <| sendLobbyUpdateToFrontend newLobby
                             )
 
