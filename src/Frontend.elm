@@ -228,7 +228,7 @@ updateFromBackend msg model =
                 | state =
                     MainMenu
                         { id = playerId
-                        , joinCode = "TOUJ"
+                        , joinCode = ""
                         , joinCodeIsInvalid = False
                         , formSubmitted = False
                         }
@@ -697,13 +697,13 @@ view model =
                             if not formSubmitted then
                                 let
                                     textClasses =
-                                        "font-red text-4xl"
+                                        "text-gray-900 text-4xl"
                                 in
                                 div [ class "flex flex-col justify-center space-y-4" ]
                                     [ h1 [ class textClasses ] [ text "Join a game" ]
                                     , Html.form [ onSubmit HandleJoinCodeSubmit, class "flex flex-col items-center space-y-4" ]
                                         [ div [ class "form-control" ]
-                                            [ label [ class "label", for "join-code-input" ] [ text "Join code" ]
+                                            [ label [ class "label text-gray-900", for "join-code-input" ] [ text "Join code" ]
                                             , input [ onInput HandleJoinCodeInput, value joinCode, class "input input-bordered input-primary", id "join-code-input" ] []
                                             , div
                                                 [ class "text-red-500"
@@ -719,6 +719,7 @@ view model =
                                             ]
                                         , div [] [ button [ class "btn btn-primary", type_ "submit" ] [ text "Join" ] ]
                                         ]
+                                    , div [ class "divider text-gray-900 before:bg-neutral after:bg-neutral" ] [ text "OR" ]
                                     , button [ onClick HandleCreateGameButtonClick, class "btn btn-secondary" ] [ text "Create game" ]
                                     ]
 
