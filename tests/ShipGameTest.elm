@@ -6,7 +6,7 @@ import List.Nonempty exposing (Nonempty(..))
 import Player exposing (PlayerId)
 import SelectionList exposing (SelectionList(..))
 import ShipGame exposing (..)
-import Test exposing (Test, describe, test)
+import Test exposing (..)
 
 
 defaultShipGame : ShipGame
@@ -130,7 +130,7 @@ suite =
                         , players = defaultPlayers
                         , dice = NeverRolled
                         }
-        , test "after rolling once" <|
+        , test "rolling once" <|
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates [ ShipGame.Roll rolledNumbersLow ]
@@ -139,7 +139,7 @@ suite =
                         , players = defaultPlayers
                         , dice = RolledOnce [ ( 1, False ), ( 2, False ), ( 4, False ), ( 5, False ), ( 6, False ) ]
                         }
-        , test "after rolling twice" <|
+        , test "rolling twice" <|
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates [ ShipGame.Roll rolledNumbersLow, ShipGame.Roll rolledNumbersHigh ]
@@ -148,7 +148,7 @@ suite =
                         , players = defaultPlayers
                         , dice = RolledTwice [ ( 3, False ), ( 4, False ), ( 4, False ), ( 5, False ), ( 6, False ) ]
                         }
-        , test "after keeping a die" <|
+        , test "keeping a die" <|
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates [ ShipGame.Roll rolledNumbersLow, ShipGame.Keep 4 ]
@@ -157,7 +157,7 @@ suite =
                         , players = defaultPlayers
                         , dice = RolledOnce [ ( 1, False ), ( 2, False ), ( 4, False ), ( 5, False ), ( 6, True ) ]
                         }
-        , test "after illegally trying to keep a die" <|
+        , test "illegally trying to keep a die" <|
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates [ ShipGame.Roll rolledNumbersLow, ShipGame.Keep 1 ]
@@ -166,7 +166,7 @@ suite =
                         , players = defaultPlayers
                         , dice = RolledOnce [ ( 1, False ), ( 2, False ), ( 4, False ), ( 5, False ), ( 6, False ) ]
                         }
-        , test "after player leaves the game" <|
+        , test "player leaves the game" <|
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates [ ShipGame.LeaveGame 2 ]
@@ -177,7 +177,7 @@ suite =
                                 |> SelectionList.map createPlayer
                         , dice = NeverRolled
                         }
-        , test "after current player leaves the game" <|
+        , test "current player leaves the game" <|
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates [ ShipGame.LeaveGame 1 ]
@@ -188,7 +188,7 @@ suite =
                                 |> SelectionList.map createPlayer
                         , dice = NeverRolled
                         }
-        , test "after playing a whole turn with a complete ship" <|
+        , test "playing a whole turn with a complete ship" <|
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates
@@ -230,7 +230,7 @@ suite =
                             SelectionList.fromLists [] (createPlayer 2) [ createPlayer 3, createPlayer 4 ]
                         , dice = NeverRolled
                         }
-        , test "after playing a whole round" <|
+        , test "playing a whole round" <|
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates playRound
@@ -246,7 +246,7 @@ suite =
                                 ]
                         , dice = NeverRolled
                         }
-        , test "after playing a whole game" <|
+        , test "playing a whole game" <|
             \_ ->
                 defaultShipGame
                     |> batchShipGameUpdates
@@ -262,4 +262,20 @@ suite =
                         , { id = 3, pastShips = [ lowScoringShip, lowScoringShip, lowScoringShip ] }
                         , { id = 4, pastShips = [ highScoringShip, highScoringShip, highScoringShip ] }
                         ]
+        , test "passing without keeping values you should want to keep" <|
+            \_ ->
+                defaultShipGame
+                    |> batchShipGameUpdates
+                        [ ShipGame.Roll rolledNumbersHigh
+                        , ShipGame.Pass
+                        ]
+                    |> expectShipGameInfo
+                        { round = 0
+                        , players =
+                            SelectionList.fromLists
+                                [ { id = 1, pastShips = [ highScoringShip ] } ]
+                                (createPlayer 2)
+                                [ createPlayer 3, createPlayer 4 ]
+                        , dice = NeverRolled
+                        }
         ]

@@ -166,17 +166,14 @@ getRolledNumbers dice =
 
         RolledOnce dieValues ->
             dieValues
-                |> List.filter (\( _, keep ) -> keep)
                 |> List.map Tuple.first
 
         RolledTwice dieValues ->
             dieValues
-                |> List.filter (\( _, keep ) -> keep)
                 |> List.map Tuple.first
 
         RolledThrice dieValues ->
             dieValues
-                |> List.filter (\( _, keep ) -> keep)
                 |> List.map Tuple.first
 
 
