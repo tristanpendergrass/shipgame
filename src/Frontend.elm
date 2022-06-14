@@ -342,7 +342,7 @@ renderPlayer inGameState player isSelected =
 leaveGameButton : Html FrontendMsg
 leaveGameButton =
     button
-        [ class "btn btn-warning btn-outline w-32 text-gray-900"
+        [ class "btn btn-warning btn-outline w-32"
         , onClick ReturnToMainMenu
         ]
         [ text "Leave game" ]
@@ -371,7 +371,7 @@ renderCenterColumn inGameState game =
                         |> Maybe.andThen .displayName
                         |> Maybe.withDefault "Anonymous"
             in
-            div [ class "text-gray-100 text-2xl" ] [ text turnTextContent ]
+            div [ class "text-content-base text-2xl" ] [ text turnTextContent ]
 
         passButton =
             div [ class "flex w-full justify-center h-16" ]
@@ -410,7 +410,7 @@ renderCenterColumn inGameState game =
                         Dice.RolledThrice _ ->
                             ( 3, "No rolls remaining" )
             in
-            div [ class "text-gray-100 tooltip cursor-pointer", attribute "data-tip" tooltipText ] [ text <| String.fromInt currentDieRoll ++ "/3" ]
+            div [ class "text-content-base tooltip cursor-pointer", attribute "data-tip" tooltipText ] [ text <| String.fromInt currentDieRoll ++ "/3" ]
 
         rollButton =
             let
@@ -437,17 +437,17 @@ renderCenterColumn inGameState game =
         die : { value : Int, displayMode : DiceDisplayMode, index : Int } -> Html FrontendMsg
         die { value, displayMode, index } =
             div
-                [ class "flex justify-center items-center w-12 h-12 bg-gray-100 rounded shadow-lg cursor-pointer"
-                , class "text-gray-900 text-2xl leading-none font-bold"
+                [ class "flex justify-center items-center w-12 h-12 bg-neutral rounded shadow-lg cursor-pointer"
+                , class "text-accent-content text-2xl leading-none font-bold"
                 , case displayMode of
                     DiceNotSelectable ->
-                        class "border-4 border-gray-800"
+                        class "border-4 border-neutral"
 
                     DiceNotSelected ->
-                        class "hover:border-4 hover:border-yellow-500/50"
+                        class "hover:border-4 hover:border-accent-focus"
 
                     DiceSelected ->
-                        class "border-4 border-yellow-500"
+                        class "border-4 border-accent"
                 , onClick (HandleKeep index)
                 ]
                 [ div [] [ text <| String.fromInt value ] ]
@@ -492,7 +492,7 @@ renderCenterColumn inGameState game =
     div [ class "flex flex-col items-center space-y-8 p-8 overflow-y-auto overflow-x-hidden" ]
         [ turnText
         , passButton
-        , div [ class "border border-gray-100 rounded w-full px-4 py-8 relative" ]
+        , div [ class "border border-content-base rounded w-full px-4 py-8 relative" ]
             [ div [ class "absolute top-2 right-2 leading-none" ] [ timeRolledText ]
             , div [ class "flex flex-col items-center space-y-12" ]
                 [ rollButton
@@ -529,7 +529,7 @@ renderShip ship =
                 ShipWithFive num1 num2 ->
                     "Ship (" ++ String.fromInt num1 ++ ", " ++ " " ++ String.fromInt num2 ++ ")"
     in
-    span [ class "text-gray-100" ] [ text shipText ]
+    span [ class "text-content-base" ] [ text shipText ]
 
 
 renderShips : { name : Maybe String, pastShips : List Ship, isSelected : Bool, isYou : Bool } -> Html FrontendMsg
@@ -537,7 +537,7 @@ renderShips { name, pastShips, isSelected, isYou } =
     let
         renderDisplayName =
             div
-                [ class "text-gray-100"
+                [ class ""
                 , if isYou then
                     class "font-bold underline"
 
@@ -554,7 +554,7 @@ renderShips { name, pastShips, isSelected, isYou } =
     in
     div [ class "flex flex-col items-center space-y-2 w-full" ]
         [ renderDisplayName
-        , div [ class "border border-gray-100 rounded w-full h-64 p-12" ]
+        , div [ class "border border-content-base rounded w-full h-64 p-12" ]
             [ div [ class "flex flex-col w-full items-center space-y-2" ]
                 (List.map renderShip pastShips)
             ]
@@ -609,9 +609,9 @@ renderShipGame inGameState game =
                 |> List.Extra.removeIfIndex (\i -> modBy 2 i == 0)
     in
     div [ class "flex w-full h-full justify-center space-x-12" ]
-        [ div [ class "w-72 h-full bg-white/25 rounded-lg" ] [ renderSideColumn inGameState leftPlayers ]
-        , div [ class "w-96 h-full bg-blue-900 rounded-lg" ] [ renderCenterColumn inGameState game ]
-        , div [ class "w-72 h-full bg-white/25 rounded-lg" ] [ renderSideColumn inGameState rightPlayers ]
+        [ div [ class "w-72 h-full bg-base-200 rounded-lg shadow" ] [ renderSideColumn inGameState leftPlayers ]
+        , div [ class "w-96 h-full bg-base-300 rounded-lg shadow" ] [ renderCenterColumn inGameState game ]
+        , div [ class "w-72 h-full bg-base-200 rounded-lg shadow" ] [ renderSideColumn inGameState rightPlayers ]
         ]
 
 
@@ -687,26 +687,25 @@ view model =
     { title = "Shipgame"
     , body =
         css
-            ++ [ div [ class "w-screen h-screen flex flex-col items-center pt-16 pb-4 space-y-12 bg-blue-500 overflow-y-auto" ]
-                    [ div [ class "text-green-200 font-bold text-9xl" ] [ text "Shipgame" ]
+            ++ [ div
+                    [ class "w-screen h-screen flex flex-col items-center pt-16 pb-4 space-y-12 bg-base-100 overflow-y-auto text-base-content"
+                    , attribute "data-theme" "aqua" -- Tailwind CSS theme
+                    ]
+                    [ div [ class "text-primary font-bold text-9xl" ] [ text "Shipgame" ]
                     , case model.state of
                         Unconnected ->
                             div [] [ text "Connecting to server..." ]
 
                         MainMenu { joinCode, joinCodeIsInvalid, formSubmitted } ->
                             if not formSubmitted then
-                                let
-                                    textClasses =
-                                        "text-gray-900 text-4xl"
-                                in
                                 div [ class "flex flex-col justify-center space-y-4" ]
-                                    [ h1 [ class textClasses ] [ text "Join a game" ]
-                                    , Html.form [ onSubmit HandleJoinCodeSubmit, class "flex flex-col items-center space-y-4" ]
+                                    [ h1 [ class "font-semibold text-4xl text-center" ] [ text "Join a game" ]
+                                    , Html.form [ onSubmit HandleJoinCodeSubmit, class "flex flex-col items-center space-y-2" ]
                                         [ div [ class "form-control" ]
-                                            [ label [ class "label text-gray-900", for "join-code-input" ] [ text "Join code" ]
+                                            [ label [ class "label text-base-content", for "join-code-input" ] [ text "Join code" ]
                                             , input [ onInput HandleJoinCodeInput, value joinCode, class "input input-bordered input-primary", id "join-code-input" ] []
                                             , div
-                                                [ class "text-red-500"
+                                                [ class "text-warning"
                                                 , class
                                                     (if joinCodeIsInvalid then
                                                         "visible"
@@ -719,8 +718,8 @@ view model =
                                             ]
                                         , div [] [ button [ class "btn btn-primary", type_ "submit" ] [ text "Join" ] ]
                                         ]
-                                    , div [ class "divider text-gray-900 before:bg-neutral after:bg-neutral" ] [ text "OR" ]
-                                    , button [ onClick HandleCreateGameButtonClick, class "btn btn-secondary" ] [ text "Create game" ]
+                                    , div [ class "divider text-base-content before:bg-neutral after:bg-neutral" ] [ text "OR" ]
+                                    , button [ onClick HandleCreateGameButtonClick, class "btn btn-accent" ] [ text "Create game" ]
                                     ]
 
                             else

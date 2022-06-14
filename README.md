@@ -15,4 +15,6 @@ $ lamdera live
 [x] Change main menu so don't prefill join code and separate create game button from other buttons
 [x] Randomize player order on game start
 [ ] Let players claim starting player
-[ ] Convert colors to use the theming
+[x] Convert colors to use daisy ui's theming
+[ ] Theme selector
+[ ] Better mobile styles
