@@ -608,10 +608,10 @@ renderShipGame inGameState game =
                 |> SelectionList.toList
                 |> List.Extra.removeIfIndex (\i -> modBy 2 i == 0)
     in
-    div [ class "flex w-full h-full justify-center space-x-12" ]
-        [ div [ class "w-72 h-full bg-base-200 rounded-lg shadow" ] [ renderSideColumn inGameState leftPlayers ]
-        , div [ class "w-96 h-full bg-base-300 rounded-lg shadow" ] [ renderCenterColumn inGameState game ]
-        , div [ class "w-72 h-full bg-base-200 rounded-lg shadow" ] [ renderSideColumn inGameState rightPlayers ]
+    div [ class "flex flex-col w-full justify-center items-center space-y-6 md:space-y-0 md:flex-row" ]
+        [ div [ class "w-96 h-full bg-base-300 rounded-lg shadow md:order-2 md:mr-12" ] [ renderCenterColumn inGameState game ]
+        , div [ class "w-72 h-full bg-base-200 rounded-lg shadow md:order-1 md:mr-12" ] [ renderSideColumn inGameState leftPlayers ]
+        , div [ class "w-72 h-full bg-base-200 rounded-lg shadow md:order-3" ] [ renderSideColumn inGameState rightPlayers ]
         ]
 
 
@@ -622,9 +622,9 @@ renderFinished inGameState gameSummary =
         comparePlayersByScore player1 player2 =
             compare (ShipGame.getPlayerScore player2) (ShipGame.getPlayerScore player1)
     in
-    div [ class "flex w-full h-full justify-center space-x-12" ]
-        [ div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
-        , div [ class "w-96 h-full bg-blue-900 rounded-lg" ]
+    div [ class "flex flex-col md:flex-row w-full h-full justify-center items-center" ]
+        [ div [ class "w-72 h-full bg-white/25 rounded-lg invisible md:visible md:mr-12" ] []
+        , div [ class "w-96 h-full bg-blue-900 rounded-lg md:mr-12" ]
             [ div [ class "flex flex-col items-center space-y-8 p-8 overflow-y-auto overflow-x-hidden" ]
                 [ span [ class "font-bold text-2xl" ] [ text "Finished" ]
                 , button [ class "btn btn-secondary", onClick ReturnToMainMenu ] [ text "Return to main menu" ]
@@ -671,7 +671,7 @@ renderFinished inGameState gameSummary =
                     )
                 ]
             ]
-        , div [ class "w-72 h-full bg-white/25 rounded-lg" ] []
+        , div [ class "w-72 h-full bg-white/25 rounded-lg invisible md:visible" ] []
         ]
 
 
@@ -691,7 +691,7 @@ view model =
                     [ class "w-screen h-screen flex flex-col items-center pt-16 pb-4 space-y-12 bg-base-100 overflow-y-auto text-base-content"
                     , attribute "data-theme" "aqua" -- Tailwind CSS theme
                     ]
-                    [ div [ class "text-primary font-bold text-9xl" ] [ text "Shipgame" ]
+                    [ div [ class "text-primary font-bold text-6xl md:text-9xl leading-relaxed block" ] [ text "Shipgame" ]
                     , case model.state of
                         Unconnected ->
                             div [] [ text "Connecting to server..." ]
