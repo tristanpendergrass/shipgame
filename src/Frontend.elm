@@ -609,9 +609,27 @@ renderShipGame inGameState game =
                 |> List.Extra.removeIfIndex (\i -> modBy 2 i == 0)
     in
     div [ class "flex flex-col w-full justify-center items-center space-y-6 md:space-y-0 md:flex-row" ]
-        [ div [ class "w-96 h-full bg-base-300 rounded-lg shadow md:order-2 md:mr-12" ] [ renderCenterColumn inGameState game ]
-        , div [ class "w-72 h-full bg-base-200 rounded-lg shadow md:order-1 md:mr-12" ] [ renderSideColumn inGameState leftPlayers ]
-        , div [ class "w-72 h-full bg-base-200 rounded-lg shadow md:order-3" ] [ renderSideColumn inGameState rightPlayers ]
+        [ div
+            [ class "w-96 max-w-full h-full bg-base-300 rounded-lg shadow md:order-2 md:mr-12"
+            , class <|
+                if List.isEmpty leftPlayers then
+                    "invisible"
+
+                else
+                    "visible"
+            ]
+            [ renderCenterColumn inGameState game ]
+        , div [ class "w-72 max-w-full h-full bg-base-200 rounded-lg shadow md:order-1 md:mr-12" ] [ renderSideColumn inGameState leftPlayers ]
+        , div
+            [ class "w-72 max-w-full h-full bg-base-200 rounded-lg shadow md:order-3"
+            , class <|
+                if List.isEmpty rightPlayers then
+                    "invisible"
+
+                else
+                    "visible"
+            ]
+            [ renderSideColumn inGameState rightPlayers ]
         ]
 
 
@@ -623,8 +641,8 @@ renderFinished inGameState gameSummary =
             compare (ShipGame.getPlayerScore player2) (ShipGame.getPlayerScore player1)
     in
     div [ class "flex flex-col md:flex-row w-full h-full justify-center items-center" ]
-        [ div [ class "w-72 h-full bg-white/25 rounded-lg invisible md:visible md:mr-12" ] []
-        , div [ class "w-96 h-full bg-blue-900 rounded-lg md:mr-12" ]
+        [ div [ class "invisible md:visible w-72 h-full bg-white/25 rounded-lg md:mr-12" ] []
+        , div [ class "w-96 max-w-full h-full bg-blue-900 rounded-lg md:mr-12" ]
             [ div [ class "flex flex-col items-center space-y-8 p-8 overflow-y-auto overflow-x-hidden" ]
                 [ span [ class "font-bold text-2xl" ] [ text "Finished" ]
                 , button [ class "btn btn-secondary", onClick ReturnToMainMenu ] [ text "Return to main menu" ]
@@ -671,7 +689,7 @@ renderFinished inGameState gameSummary =
                     )
                 ]
             ]
-        , div [ class "w-72 h-full bg-white/25 rounded-lg invisible md:visible" ] []
+        , div [ class "invisible md:visible w-72 max-w-full h-full bg-white/25 rounded-lg" ] []
         ]
 
 
