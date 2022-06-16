@@ -437,7 +437,7 @@ renderCenterColumn inGameState game =
         die : { value : Int, displayMode : DiceDisplayMode, index : Int } -> Html FrontendMsg
         die { value, displayMode, index } =
             div
-                [ class "flex justify-center items-center w-12 h-12 bg-neutral rounded shadow-lg cursor-pointer"
+                [ class "flex justify-center items-center w-12 h-12 bg-neutral rounded shadow-lg cursor-pointer animate-roll"
                 , class "text-accent-content text-2xl leading-none font-bold"
                 , case displayMode of
                     DiceNotSelectable ->
@@ -613,7 +613,7 @@ renderShipGame inGameState game =
             [ class "w-96 max-w-full h-full bg-base-300 rounded-lg shadow md:order-2 md:mr-12"
             , class <|
                 if List.isEmpty leftPlayers then
-                    "invisible"
+                    "invisible md:visible"
 
                 else
                     "visible"
@@ -624,7 +624,7 @@ renderShipGame inGameState game =
             [ class "w-72 max-w-full h-full bg-base-200 rounded-lg shadow md:order-3"
             , class <|
                 if List.isEmpty rightPlayers then
-                    "invisible"
+                    "invisible md:visible"
 
                 else
                     "visible"
