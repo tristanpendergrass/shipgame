@@ -160,7 +160,7 @@ update msg shipGame =
                     SelectionList.mapSelected
                         (\player ->
                             { player
-                                | pastShips = shipFromRolledNumbers (Dice.getRolledNumbers shipGame.dice) :: player.pastShips
+                                | pastShips = shipFromRolledNumbers (Dice.getNumbers shipGame.dice) :: player.pastShips
                             }
                         )
                         shipGame.players

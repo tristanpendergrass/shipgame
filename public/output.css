@@ -3013,8 +3013,8 @@ html {
 }
 
 .animate-roll {
-  -webkit-animation: spin 0.5s linear;
-          animation: spin 0.5s linear;
+  -webkit-animation: spin 0.3s linear;
+          animation: spin 0.3s linear;
 }
 
 .cursor-pointer {

@@ -1,6 +1,8 @@
 module Frontend exposing (..)
 
+import Animation
 import Browser exposing (UrlRequest(..))
+import Browser.Events
 import Browser.Navigation as Nav
 import Dice exposing (..)
 import Dict
@@ -31,7 +33,7 @@ app =
         , onUrlChange = UrlChanged
         , update = update
         , updateFromBackend = updateFromBackend
-        , subscriptions = \m -> Sub.none
+        , subscriptions = subscriptions
         , view = view
         }
 
@@ -204,6 +206,16 @@ update msg model =
                     , Lamdera.sendToBackend ExitLobby
                     )
 
+        ProgressRollAnimation delta ->
+            updateInGame
+                (\inGameState ->
+                    ( { inGameState
+                        | rollAnimation = Animation.increment delta inGameState.rollAnimation
+                      }
+                    , Cmd.none
+                    )
+                )
+
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
@@ -244,6 +256,7 @@ updateFromBackend msg model =
                         , lobby = lobby
                         , playerData = playerData
                         , nameInput = "Joe"
+                        , rollAnimation = Animation.create
                         }
               }
             , Cmd.none
@@ -252,7 +265,28 @@ updateFromBackend msg model =
         UpdateLobby newLobby ->
             updateInGame
                 (\inGameState ->
-                    ( { inGameState | lobby = newLobby }, Cmd.none )
+                    let
+                        oldDice =
+                            Lobby.getDice inGameState.lobby
+
+                        newDice =
+                            Lobby.getDice newLobby
+
+                        diceHaveChanged =
+                            Maybe.map Dice.getTimesRolled oldDice /= Maybe.map Dice.getTimesRolled newDice
+                    in
+                    ( { inGameState
+                        | lobby = newLobby
+                        , rollAnimation =
+                            if diceHaveChanged then
+                                -- NOTE: keep this time in sync with the value for the animation in tailwind.config.js
+                                Animation.start 300
+
+                            else
+                                inGameState.rollAnimation
+                      }
+                    , Cmd.none
+                    )
                 )
 
         JoinGameFailed ->
@@ -434,11 +468,17 @@ renderCenterColumn inGameState game =
                 ]
                 [ text rollText ]
 
-        die : { value : Int, displayMode : DiceDisplayMode, index : Int } -> Html FrontendMsg
-        die { value, displayMode, index } =
+        die : { value : Int, displayMode : DiceDisplayMode, index : Int, rolling : Bool } -> Html FrontendMsg
+        die { value, displayMode, index, rolling } =
             div
-                [ class "flex justify-center items-center w-12 h-12 bg-neutral rounded shadow-lg cursor-pointer animate-roll"
+                [ class "flex justify-center items-center w-12 h-12 bg-neutral rounded shadow-lg cursor-pointer"
                 , class "text-accent-content text-2xl leading-none font-bold"
+                , class <|
+                    if rolling then
+                        "animate-roll"
+
+                    else
+                        ""
                 , case displayMode of
                     DiceNotSelectable ->
                         class "border-4 border-neutral"
@@ -468,6 +508,7 @@ renderCenterColumn inGameState game =
                                         else
                                             DiceNotSelected
                                     , index = index
+                                    , rolling = Animation.inProgress inGameState.rollAnimation && not dieIsSelected
                                     }
 
                             else
@@ -480,6 +521,7 @@ renderCenterColumn inGameState game =
                                         else
                                             DiceNotSelectable
                                     , index = index
+                                    , rolling = Animation.inProgress inGameState.rollAnimation
                                     }
                     in
                     ( [ renderDie first 0, renderDie second 1 ]
@@ -691,6 +733,16 @@ renderFinished inGameState gameSummary =
             ]
         , div [ class "invisible md:visible w-72 max-w-full h-full bg-white/25 rounded-lg" ] []
         ]
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub FrontendMsg
+subscriptions model =
+    Sub.batch
+        [ Browser.Events.onAnimationFrameDelta ProgressRollAnimation ]
 
 
 view : Model -> Browser.Document FrontendMsg

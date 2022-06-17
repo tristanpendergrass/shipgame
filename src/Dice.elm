@@ -5,7 +5,8 @@ module Dice exposing
     , create
     , diceValueGenerator
     , doneRolling
-    , getRolledNumbers
+    , getNumbers
+    , getTimesRolled
     , keepDie
     , roll
     , sort
@@ -158,8 +159,8 @@ keepDie index dice =
                         Ok (mapDieValues (\_ -> List.Extra.setAt index ( value, True ) values) dice)
 
 
-getRolledNumbers : Dice -> List Int
-getRolledNumbers dice =
+getNumbers : Dice -> List Int
+getNumbers dice =
     case dice of
         NeverRolled ->
             []
@@ -175,6 +176,22 @@ getRolledNumbers dice =
         RolledThrice dieValues ->
             dieValues
                 |> List.map Tuple.first
+
+
+getTimesRolled : Dice -> Int
+getTimesRolled dice =
+    case dice of
+        NeverRolled ->
+            0
+
+        RolledOnce _ ->
+            1
+
+        RolledTwice _ ->
+            2
+
+        RolledThrice _ ->
+            3
 
 
 

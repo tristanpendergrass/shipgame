@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import Animation exposing (Animation)
 import Browser exposing (UrlRequest)
 import Browser.Navigation exposing (Key)
 import Dict exposing (Dict)
@@ -35,6 +36,7 @@ type alias InGameState =
     , lobby : Lobby
     , playerData : PlayerData
     , nameInput : String
+    , rollAnimation : Animation
     }
 
 
@@ -75,6 +77,7 @@ type FrontendMsg
     | HandlePass
     | HandleKeep Int
     | ReturnToMainMenu
+    | ProgressRollAnimation Float
 
 
 type ToBackend

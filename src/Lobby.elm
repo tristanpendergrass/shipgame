@@ -1,5 +1,6 @@
 module Lobby exposing (..)
 
+import Dice exposing (Dice)
 import Dict exposing (Dict)
 import List.Nonempty exposing (Nonempty)
 import Player exposing (Player, PlayerId)
@@ -178,3 +179,13 @@ updateGame shipGameMsg lobby =
 
         Finished _ ->
             lobby
+
+
+getDice : Lobby -> Maybe Dice
+getDice lobby =
+    case lobby.gameWrapper of
+        InProgress game ->
+            Just game.dice
+
+        _ ->
+            Nothing
